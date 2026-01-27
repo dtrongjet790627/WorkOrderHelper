@@ -1,0 +1,174 @@
+/**
+ * hulu.css - HULU工单视图样式
+ * 设计：程远 | 2026-01-17
+ * 优化：减少样式计算开销，提升渲染性能
+ */
+
+/* ============================================
+   HULU工单视图
+   ============================================ */
+/* 顶部信息卡片行 - 统一高度由workorder.css控制 */
+#view-hulu > .row:first-child {
+    margin-bottom: 12px;
+}
+/* 注意：顶部card高度由workorder.css统一控制为140px */
+/* 底部列表卡片行 - 填满剩余空间 */
+#view-hulu > .row:last-child {
+    margin-top: 0;
+}
+#view-hulu > .row:last-child .card {
+    height: calc(100vh - 350px);  /* 减去顶部卡片高度(约240px) + header(50px) + 边距(60px) */
+    display: flex;
+    flex-direction: column;
+}
+#view-hulu > .row:last-child .card-body {
+    flex: 1;
+    overflow: hidden;
+}
+#view-hulu .hulu-list-table-container {
+    height: 100%;
+    max-height: none;
+    overflow-y: auto !important;
+    /* 性能优化：创建独立滚动层 */
+    will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================
+   HULU列表表格性能优化
+   ============================================ */
+/* 禁用表格行hover效果，减少重绘 - 排除空状态行 */
+#huluWipBody tr:not(:only-child),
+#huluFinishedBody tr:not(:only-child) {
+    /* 简化样式，减少计算 */
+    contain: layout style;
+}
+
+/* 禁用hover时的背景变化（减少重绘）- 排除空状态行 */
+#huluWipBody tr:not(:only-child):hover,
+#huluFinishedBody tr:not(:only-child):hover {
+    background-color: transparent !important;
+}
+
+/* 简化code标签样式 */
+#huluWipBody code,
+#huluFinishedBody code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+/* 列表数据居中显示 - 排除空状态单元格 */
+#huluWipBody td:not(.empty-state-cell),
+#huluFinishedBody td:not(.empty-state-cell) {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* ============================================
+   HULU列表固定列宽
+   ============================================ */
+/* 表格使用固定布局 */
+#huluFinishedTable table,
+#huluWipTable table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* 固定列宽：产品条码70%，工位30% */
+#huluFinishedTable th:first-child,
+#huluFinishedTable td:first-child,
+#huluWipTable th:first-child,
+#huluWipTable td:first-child {
+    width: 70%;
+}
+
+#huluFinishedTable th:last-child,
+#huluFinishedTable td:last-child,
+#huluWipTable th:last-child,
+#huluWipTable td:last-child {
+    width: 30%;
+}
+
+/* 超出内容处理：隐藏溢出并显示省略号 - 排除空状态单元格 */
+#huluFinishedBody td:not(.empty-state-cell),
+#huluWipBody td:not(.empty-state-cell) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ============================================
+   HULU列表空状态居中显示
+   ============================================ */
+/* 空状态行 - 撑满整个列表区域 */
+#huluWipBody tr:only-child,
+#huluFinishedBody tr:only-child {
+    height: calc(100vh - 480px) !important;
+    min-height: 200px;
+}
+
+/* 空状态单元格 - 支持两种类名（HTML初始状态和JS生成状态） */
+#huluWipBody .empty-state-cell,
+#huluFinishedBody .empty-state-cell,
+#huluWipBody .empty-state-sm,
+#huluFinishedBody .empty-state-sm {
+    border: none !important;
+    padding: 0 !important;
+    height: 100% !important;
+    vertical-align: middle !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    text-align: center !important;
+}
+
+/* 空状态容器 - 偏上居中 */
+#huluWipBody .empty-state-container,
+#huluFinishedBody .empty-state-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+    padding-top: 30px;
+}
+
+/* 空状态吉祥物图标 */
+#huluWipBody .empty-state-mascot,
+#huluFinishedBody .empty-state-mascot {
+    font-size: 42px;
+    margin-bottom: 12px;
+    color: #6c757d;
+    animation: mascot-bounce 2s ease-in-out infinite;
+}
+
+#huluWipBody .empty-state-mascot i,
+#huluFinishedBody .empty-state-mascot i {
+    display: inline-block;
+}
+
+/* 空状态文字 */
+#huluWipBody .empty-state-text,
+#huluFinishedBody .empty-state-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: #4b5563;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+/* 空状态提示 */
+#huluWipBody .empty-state-hint,
+#huluFinishedBody .empty-state-hint {
+    font-size: 12px;
+    color: #9ca3af;
+    text-align: center;
+}
+
+/* 吉祥物弹跳动画 */
+@keyframes mascot-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}

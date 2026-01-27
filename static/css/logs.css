@@ -1,0 +1,268 @@
+/**
+ * logs.css - 日志查看器样式
+ * 设计：程远 | 2026-01-23
+ */
+
+/* 日志筛选工具栏 */
+.log-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.log-toolbar .form-select,
+.log-toolbar .form-control {
+    font-size: 0.85rem;
+    height: 32px;
+}
+
+.log-toolbar .btn {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 0.85rem;
+}
+
+.log-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.log-filter-group label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* 日志内容区域 */
+.log-content-wrapper {
+    background: #1e1e1e;
+    min-height: 400px;
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.log-content-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-content-wrapper::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.log-content-wrapper::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.log-content-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* 日志行 */
+.log-line {
+    padding: 3px 12px;
+    border-bottom: 1px solid #2d2d2d;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+}
+
+.log-line:hover {
+    background: #2d2d2d;
+}
+
+/* 日志级别颜色 */
+.log-line.level-debug {
+    color: #9cdcfe;
+}
+
+.log-line.level-info {
+    color: #4ec9b0;
+}
+
+.log-line.level-warning {
+    color: #dcdcaa;
+}
+
+.log-line.level-error {
+    color: #f14c4c;
+}
+
+.log-line.level-critical {
+    color: #ff0000;
+    font-weight: bold;
+}
+
+/* 日志时间戳 */
+.log-timestamp {
+    color: #6a9955;
+}
+
+/* 日志类别 */
+.log-category {
+    color: #569cd6;
+    font-weight: bold;
+}
+
+/* 高亮搜索关键词 */
+.log-highlight {
+    background: #ffff00;
+    color: #000;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+/* 日志统计信息 */
+.log-stats {
+    padding: 8px 15px;
+    background: #343a40;
+    color: #adb5bd;
+    font-size: 0.8rem;
+    border-top: 1px solid #495057;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.log-stats .stat-item {
+    margin-right: 20px;
+}
+
+.log-stats .stat-value {
+    color: #fff;
+    font-weight: bold;
+}
+
+/* 加载状态 */
+.log-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    color: #6c757d;
+}
+
+.log-loading .spinner-border {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+}
+
+/* 空状态 */
+.log-empty {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    color: #6c757d;
+}
+
+.log-empty i {
+    font-size: 48px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+/* 文件列表 */
+.log-file-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.log-file-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.log-file-item:hover {
+    background: #f8f9fa;
+}
+
+.log-file-item.active {
+    background: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+}
+
+.log-file-name {
+    font-weight: 500;
+}
+
+.log-file-meta {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* 日志类型标签 */
+.log-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.log-type-badge.system {
+    background: #6c757d;
+    color: #fff;
+}
+
+.log-type-badge.database {
+    background: #198754;
+    color: #fff;
+}
+
+.log-type-badge.api {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.log-type-badge.user {
+    background: #ffc107;
+    color: #000;
+}
+
+/* 自动刷新指示器 */
+.auto-refresh-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    color: #198754;
+}
+
+.auto-refresh-indicator .pulse {
+    width: 8px;
+    height: 8px;
+    background: #198754;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

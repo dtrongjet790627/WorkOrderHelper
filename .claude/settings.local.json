@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(dir \"d:\\\\TechTeam\\\\Delivery\\\\ACC运维\\\\2025-12-28_ERP收货不足处理\\\\web_app\\\\logs\")"
+    ]
+  }
+}

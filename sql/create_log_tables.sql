@@ -1,0 +1,186 @@
+-- ============================================================
+-- 操作日志表创建脚本
+-- 数据库: Oracle (iplant_web@172.17.10.165)
+-- 创建时间: 2026-01-23
+-- ============================================================
+
+-- 注意: 请使用iplant_web用户执行此脚本
+-- 连接命令: sqlplus iplant_web/iplant@172.17.10.165:1521/orcl.ecdag.com
+
+-- ============================================================
+-- 1. 工单操作日志表 (WOA_WORKORDER_OP)
+-- 用于记录add_missing_products等工单操作
+-- ============================================================
+
+CREATE SEQUENCE WOA_WORKORDER_OP_SEQ
+    START WITH 1
+    INCREMENT BY 1
+    NOCACHE
+    NOCYCLE;
+
+CREATE TABLE WOA_WORKORDER_OP (
+    ID NUMBER PRIMARY KEY,
+    UNITSN NVARCHAR2(100),              -- 主码
+    LINENAME NVARCHAR2(20),             -- 产线
+    WONO NVARCHAR2(50),                 -- 工单号
+    PARTNO NVARCHAR2(50),               -- 型号
+    PRODUCT_STATUS NUMBER,              -- 状态 (1=未完成, 2=完成)
+    OP_TIME DATE DEFAULT SYSDATE,       -- 操作时间
+    OPERATOR NVARCHAR2(50),             -- 操作人
+    RESULT NVARCHAR2(10),               -- 结果 (SUCCESS/FAIL)
+    REMARK NVARCHAR2(200)               -- 备注
+);
+
+CREATE OR REPLACE TRIGGER WOA_WORKORDER_OP_TRG
+    BEFORE INSERT ON WOA_WORKORDER_OP
+    FOR EACH ROW
+BEGIN
+    IF :NEW.ID IS NULL THEN
+        SELECT WOA_WORKORDER_OP_SEQ.NEXTVAL INTO :NEW.ID FROM DUAL;
+    END IF;
+END;
+/
+
+-- 创建索引
+CREATE INDEX IDX_WOA_WORKORDER_OP_WONO ON WOA_WORKORDER_OP(WONO);
+CREATE INDEX IDX_WOA_WORKORDER_OP_UNITSN ON WOA_WORKORDER_OP(UNITSN);
+CREATE INDEX IDX_WOA_WORKORDER_OP_TIME ON WOA_WORKORDER_OP(OP_TIME);
+
+COMMENT ON TABLE WOA_WORKORDER_OP IS '工单操作日志表';
+COMMENT ON COLUMN WOA_WORKORDER_OP.ID IS '主键ID';
+COMMENT ON COLUMN WOA_WORKORDER_OP.UNITSN IS '产品主码';
+COMMENT ON COLUMN WOA_WORKORDER_OP.LINENAME IS '产线名称';
+COMMENT ON COLUMN WOA_WORKORDER_OP.WONO IS '工单号';
+COMMENT ON COLUMN WOA_WORKORDER_OP.PARTNO IS '产品型号';
+COMMENT ON COLUMN WOA_WORKORDER_OP.PRODUCT_STATUS IS '产品状态(1=未完成,2=完成)';
+COMMENT ON COLUMN WOA_WORKORDER_OP.OP_TIME IS '操作时间';
+COMMENT ON COLUMN WOA_WORKORDER_OP.OPERATOR IS '操作人';
+COMMENT ON COLUMN WOA_WORKORDER_OP.RESULT IS '操作结果(SUCCESS/FAIL)';
+COMMENT ON COLUMN WOA_WORKORDER_OP.REMARK IS '备注信息';
+
+
+-- ============================================================
+-- 2. 打包操作日志表 (WOA_PACKING_OP)
+-- 每个unitsn一条记录
+-- ============================================================
+
+CREATE SEQUENCE WOA_PACKING_OP_SEQ
+    START WITH 1
+    INCREMENT BY 1
+    NOCACHE
+    NOCYCLE;
+
+CREATE TABLE WOA_PACKING_OP (
+    ID NUMBER PRIMARY KEY,
+    UNITSN NVARCHAR2(100),              -- 主码
+    LINENAME NVARCHAR2(20),             -- 产线
+    WONO NVARCHAR2(50),                 -- 工单号
+    PARTNO NVARCHAR2(50),               -- 型号
+    PACKID NVARCHAR2(50),               -- 批次号
+    OP_TIME DATE DEFAULT SYSDATE,       -- 操作时间
+    OPERATOR NVARCHAR2(50),             -- 操作人
+    RESULT NVARCHAR2(10),               -- 结果 (SUCCESS/FAIL)
+    REMARK NVARCHAR2(200)               -- 备注
+);
+
+CREATE OR REPLACE TRIGGER WOA_PACKING_OP_TRG
+    BEFORE INSERT ON WOA_PACKING_OP
+    FOR EACH ROW
+BEGIN
+    IF :NEW.ID IS NULL THEN
+        SELECT WOA_PACKING_OP_SEQ.NEXTVAL INTO :NEW.ID FROM DUAL;
+    END IF;
+END;
+/
+
+-- 创建索引
+CREATE INDEX IDX_WOA_PACKING_OP_WONO ON WOA_PACKING_OP(WONO);
+CREATE INDEX IDX_WOA_PACKING_OP_PACKID ON WOA_PACKING_OP(PACKID);
+CREATE INDEX IDX_WOA_PACKING_OP_TIME ON WOA_PACKING_OP(OP_TIME);
+CREATE INDEX IDX_WOA_PACKING_OP_UNITSN ON WOA_PACKING_OP(UNITSN);
+
+COMMENT ON TABLE WOA_PACKING_OP IS '打包操作日志表(每个unitsn一条记录)';
+COMMENT ON COLUMN WOA_PACKING_OP.ID IS '主键ID';
+COMMENT ON COLUMN WOA_PACKING_OP.UNITSN IS '产品主码';
+COMMENT ON COLUMN WOA_PACKING_OP.LINENAME IS '产线名称';
+COMMENT ON COLUMN WOA_PACKING_OP.WONO IS '工单号';
+COMMENT ON COLUMN WOA_PACKING_OP.PARTNO IS '产品型号';
+COMMENT ON COLUMN WOA_PACKING_OP.PACKID IS '批次号';
+COMMENT ON COLUMN WOA_PACKING_OP.OP_TIME IS '操作时间';
+COMMENT ON COLUMN WOA_PACKING_OP.OPERATOR IS '操作人';
+COMMENT ON COLUMN WOA_PACKING_OP.RESULT IS '操作结果(SUCCESS/FAIL)';
+COMMENT ON COLUMN WOA_PACKING_OP.REMARK IS '备注信息';
+
+
+-- ============================================================
+-- 3. HULU同步日志表 (WOA_HULU_SYNC)
+-- 用于记录sync_to_hulu同步操作,每条产品单独记录
+-- ============================================================
+
+CREATE SEQUENCE WOA_HULU_SYNC_SEQ
+    START WITH 1
+    INCREMENT BY 1
+    NOCACHE
+    NOCYCLE;
+
+CREATE TABLE WOA_HULU_SYNC (
+    ID NUMBER PRIMARY KEY,
+    UNITSN NVARCHAR2(100),              -- 主码
+    LINENAME NVARCHAR2(20),             -- 产线
+    WONO NVARCHAR2(50),                 -- 工单号
+    PARTNO NVARCHAR2(50),               -- 型号
+    SYNC_TYPE NVARCHAR2(20),            -- 同步类型(UPDATE/INSERT)
+    ACC_COUNT NUMBER,                   -- ACC数量
+    HULU_COUNT NUMBER,                  -- HULU数量
+    OP_TIME DATE DEFAULT SYSDATE,       -- 操作时间
+    OPERATOR NVARCHAR2(50),             -- 操作人
+    RESULT NVARCHAR2(10),               -- 结果 (SUCCESS/FAIL)
+    REMARK NVARCHAR2(200)               -- 备注
+);
+
+CREATE OR REPLACE TRIGGER WOA_HULU_SYNC_TRG
+    BEFORE INSERT ON WOA_HULU_SYNC
+    FOR EACH ROW
+BEGIN
+    IF :NEW.ID IS NULL THEN
+        SELECT WOA_HULU_SYNC_SEQ.NEXTVAL INTO :NEW.ID FROM DUAL;
+    END IF;
+END;
+/
+
+-- 创建索引
+CREATE INDEX IDX_WOA_HULU_SYNC_WONO ON WOA_HULU_SYNC(WONO);
+CREATE INDEX IDX_WOA_HULU_SYNC_UNITSN ON WOA_HULU_SYNC(UNITSN);
+CREATE INDEX IDX_WOA_HULU_SYNC_TIME ON WOA_HULU_SYNC(OP_TIME);
+CREATE INDEX IDX_WOA_HULU_SYNC_TYPE ON WOA_HULU_SYNC(SYNC_TYPE);
+
+COMMENT ON TABLE WOA_HULU_SYNC IS 'HULU同步日志表';
+COMMENT ON COLUMN WOA_HULU_SYNC.ID IS '主键ID';
+COMMENT ON COLUMN WOA_HULU_SYNC.UNITSN IS '产品主码';
+COMMENT ON COLUMN WOA_HULU_SYNC.LINENAME IS '产线名称';
+COMMENT ON COLUMN WOA_HULU_SYNC.WONO IS '工单号';
+COMMENT ON COLUMN WOA_HULU_SYNC.PARTNO IS '产品型号';
+COMMENT ON COLUMN WOA_HULU_SYNC.SYNC_TYPE IS '同步类型(UPDATE/INSERT)';
+COMMENT ON COLUMN WOA_HULU_SYNC.ACC_COUNT IS 'ACC数量';
+COMMENT ON COLUMN WOA_HULU_SYNC.HULU_COUNT IS 'HULU数量';
+COMMENT ON COLUMN WOA_HULU_SYNC.OP_TIME IS '操作时间';
+COMMENT ON COLUMN WOA_HULU_SYNC.OPERATOR IS '操作人';
+COMMENT ON COLUMN WOA_HULU_SYNC.RESULT IS '操作结果(SUCCESS/FAIL)';
+COMMENT ON COLUMN WOA_HULU_SYNC.REMARK IS '备注信息';
+
+
+-- ============================================================
+-- 验证创建结果
+-- ============================================================
+
+SELECT table_name FROM user_tables WHERE table_name LIKE 'WOA_%' ORDER BY table_name;
+SELECT sequence_name FROM user_sequences WHERE sequence_name LIKE 'WOA_%' ORDER BY sequence_name;
+
+
+-- ============================================================
+-- 授权语句(如果需要其他用户访问)
+-- ============================================================
+
+-- GRANT SELECT, INSERT ON WOA_WORKORDER_OP TO other_user;
+-- GRANT SELECT, INSERT ON WOA_PACKING_OP TO other_user;
+-- GRANT SELECT, INSERT ON WOA_HULU_SYNC TO other_user;

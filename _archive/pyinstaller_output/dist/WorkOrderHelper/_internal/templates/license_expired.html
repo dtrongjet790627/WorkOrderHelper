@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授权验证 - 工单小管家</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .license-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 50px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 520px;
+            width: 100%;
+        }
+        .status-icon {
+            font-size: 70px;
+            margin-bottom: 15px;
+        }
+        .status-icon.expired { color: #dc3545; }
+        .status-icon.invalid { color: #ffc107; }
+        .status-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .status-message {
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 25px;
+        }
+        .license-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        .license-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #dee2e6;
+            font-size: 14px;
+        }
+        .license-info-item:last-child { border-bottom: none; }
+        .license-info-label { color: #666; }
+        .license-info-value { color: #333; font-weight: 500; }
+        .activate-section {
+            background: #f0f7ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .activate-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0d6efd;
+            margin-bottom: 15px;
+        }
+        .license-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            resize: none;
+            transition: border-color 0.3s;
+        }
+        .license-input:focus {
+            border-color: #0d6efd;
+            outline: none;
+        }
+        .btn-activate {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .alert {
+            text-align: left;
+            font-size: 14px;
+        }
+        .logo {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0 20px;
+            color: #999;
+            font-size: 13px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .divider::before { margin-right: 15px; }
+        .divider::after { margin-left: 15px; }
+    </style>
+</head>
+<body>
+    <div class="license-card">
+        <img src="/static/images/logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
+
+        {% if license_info and license_info.expire_date != '-' and license_info.days_remaining < 0 %}
+        <!-- 已过期状态：days_remaining为负数表示已过期 -->
+        <div class="status-icon expired">
+            <i class="bi bi-shield-exclamation"></i>
+        </div>
+        <div class="status-title">软件授权已过期</div>
+        <div class="status-message">您的使用授权已到期，请输入新的授权码续期</div>
+
+        <div class="license-info">
+            <div class="license-info-item">
+                <span class="license-info-label">产品名称</span>
+                <span class="license-info-value">{{ license_info.product }}</span>
+            </div>
+            <div class="license-info-item">
+                <span class="license-info-label">授权客户</span>
+                <span class="license-info-value">{{ license_info.customer }}</span>
+            </div>
+            <div class="license-info-item">
+                <span class="license-info-label">过期日期</span>
+                <span class="license-info-value text-danger">{{ license_info.expire_date }}</span>
+            </div>
+            <div class="license-info-item">
+                <span class="license-info-label">已过期</span>
+                <span class="license-info-value text-danger">{{ -license_info.days_remaining }} 天</span>
+            </div>
+        </div>
+        {% elif license_info and license_info.expire_date != '-' and license_info.days_remaining >= 0 %}
+        <!-- 授权有效状态：days_remaining为正数或0表示未过期 -->
+        <div class="status-icon" style="color: #198754;">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="status-title">授权有效</div>
+        <div class="status-message">您的软件授权正常，可以继续使用</div>
+
+        <div class="license-info">
+            <div class="license-info-item">
+                <span class="license-info-label">产品名称</span>
+                <span class="license-info-value">{{ license_info.product }}</span>
+            </div>
+            <div class="license-info-item">
+                <span class="license-info-label">授权客户</span>
+                <span class="license-info-value">{{ license_info.customer }}</span>
+            </div>
+            <div class="license-info-item">
+                <span class="license-info-label">过期日期</span>
+                <span class="license-info-value">{{ license_info.expire_date }}</span>
+            </div>
+            <div class="license-info-item">
+                <span class="license-info-label">剩余天数</span>
+                <span class="license-info-value text-success">{{ license_info.days_remaining }} 天</span>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="/" class="btn btn-success btn-lg">
+                <i class="bi bi-house"></i> 返回首页
+            </a>
+        </div>
+        {% else %}
+        <!-- 无授权文件状态 -->
+        <div class="status-icon invalid">
+            <i class="bi bi-shield-lock"></i>
+        </div>
+        <div class="status-title">需要授权验证</div>
+        <div class="status-message">{{ message or '请输入授权码激活软件' }}</div>
+        {% endif %}
+
+        <div class="divider">输入授权码激活</div>
+
+        <div id="alertContainer"></div>
+
+        <form id="activateForm">
+            <textarea class="license-input" id="licenseCode" rows="4"
+                      placeholder="请粘贴授权码..."></textarea>
+            <button type="submit" class="btn btn-primary btn-activate">
+                <i class="bi bi-key"></i> 激活授权
+            </button>
+        </form>
+
+        <div class="mt-3 text-muted" style="font-size: 13px;">
+            <i class="bi bi-info-circle"></i> 请联系管理员获取授权码
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('activateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const code = document.getElementById('licenseCode').value.trim();
+            const alertContainer = document.getElementById('alertContainer');
+
+            if (!code) {
+                alertContainer.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> 请输入授权码</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/activate_license', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ license_code: code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alertContainer.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    alertContainer.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> ' + data.message + '</div>';
+                }
+            } catch (e) {
+                alertContainer.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> 网络错误，请重试</div>';
+            }
+        });
+    </script>
+</body>
+</html>

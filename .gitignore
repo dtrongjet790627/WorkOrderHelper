@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Config with secrets
+config/database.ini
+
+# Cache
+.cache/
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+nul
+*.bak
+*.backup

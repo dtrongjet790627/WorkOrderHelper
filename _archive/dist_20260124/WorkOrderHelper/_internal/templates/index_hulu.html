@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工单小管家</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <!-- 预加载Bootstrap Icons字体，避免图标闪烁 -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/fonts/bootstrap-icons.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- 分离的CSS模块 -->
+    <link href="{{ url_for('static', filename='css/base.css') }}?v=2026012423" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/sidebar.css') }}?v=2026012423" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/workorder.css') }}?v=2026012423" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/erp-detail.css') }}?v=2026012423" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/hulu.css') }}?v=2026012423" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/eai-logs.css') }}?v=2026012423" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/detail-query.css') }}?v=2026012423" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/logs.css') }}?v=2026012423" rel="stylesheet">
+    <style>
+        /* 内联CSS已分离至static/css/目录下的模块文件 */
+        /* 关键样式内联备份 - 确保布局正确 */
+
+        /* 登录区域强制样式 */
+        .sidebar-user-section {
+            padding: 12px 16px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .sidebar-login {
+            width: 100% !important;
+        }
+        .sidebar-login .login-title {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 8px !important;
+            color: #a0a0b0;
+            font-size: 12px;
+            margin-bottom: 10px;
+            white-space: nowrap !important;
+        }
+        .sidebar-login .login-title i {
+            font-size: 16px;
+            flex-shrink: 0 !important;
+        }
+        .sidebar-login .login-title span {
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+        }
+        .sidebar-login .login-form {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+        .sidebar-login .login-form .form-control {
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .sidebar-login .login-form .btn-primary {
+            width: 100% !important;
+        }
+
+        /* 按钮加载旋转动画 */
+        .spin {
+            animation: btnSpin 1s linear infinite;
+        }
+        @keyframes btnSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Loading动画强制样式 */
+        #loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.92);
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+        .loading-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .loading-icon-wrapper {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+        }
+        .loading-icon {
+            font-size: 48px;
+            color: #0d6efd;
+            animation: iconBounce 1.2s ease-in-out infinite;
+        }
+        .loading-icon-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 70px;
+            height: 70px;
+            margin: -35px 0 0 -35px;
+            border: 3px solid #e9ecef;
+            border-top-color: #0d6efd;
+            border-radius: 50%;
+            animation: ringRotate 1s linear infinite;
+        }
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .loading-dot {
+            width: 10px;
+            height: 10px;
+            background: #0d6efd;
+            border-radius: 50%;
+            animation: dotPulse 1.4s ease-in-out infinite;
+        }
+        .loading-dot:nth-child(1) { animation-delay: 0s; }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+        .loading-text {
+            font-size: 16px;
+            color: #495057;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .loading-subtext {
+            font-size: 13px;
+            color: #6c757d;
+        }
+        @keyframes iconBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.05); }
+        }
+        @keyframes ringRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes dotPulse {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid px-4">
+            <span class="navbar-brand">
+                <i class="bi bi-box-seam"></i> 工单小管家
+            </span>
+            <!-- 顶部工具栏 -->
+            <div class="d-flex align-items-center ms-4">
+                <!-- 工单查询区域 -->
+                <div class="input-group" style="width: 350px;">
+                    <input type="text" class="form-control form-control-sm" id="wonoInput" placeholder="输入工单号 (SMT/MID/EPP/EPS/IPA)" list="wonoHistory" autocomplete="off">
+                    <datalist id="wonoHistory"></datalist>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="clearSearchHistory()" title="清除搜索历史">
+                        <i class="bi bi-clock-history"></i>
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="queryWorkorder()">
+                        <i class="bi bi-search"></i> 查询
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="resetAllViews()" title="重置所有页面数据">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 左侧边栏 - 固定显示 -->
+    <nav class="sidebar-nav" id="sidebarNav">
+        <!-- 头部 -->
+        <div class="sidebar-header">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="sidebar-logo-img">
+            <span class="sidebar-title">工单小管家</span>
+        </div>
+
+        <!-- 导航菜单 -->
+        <div class="sidebar-menu">
+            <!-- 工单数据 -->
+            <a href="javascript:void(0)" class="sidebar-item active" data-view="workorder">
+                <i class="bi bi-clipboard-data"></i>
+                <span class="nav-text">工单数据</span>
+            </a>
+
+            <!-- 明细查询 -->
+            <a href="javascript:void(0)" class="sidebar-item" data-view="detail-query">
+                <i class="bi bi-search"></i>
+                <span class="nav-text">明细查询</span>
+            </a>
+
+            <!-- HULU工单 -->
+            <a href="javascript:void(0)" class="sidebar-item" data-view="hulu">
+                <i class="bi bi-cpu"></i>
+                <span class="nav-text">HULU工单</span>
+            </a>
+
+            <!-- ERP详情 -->
+            <a href="javascript:void(0)" class="sidebar-item" data-view="erp-detail">
+                <i class="bi bi-box-seam"></i>
+                <span class="nav-text">ERP详情</span>
+            </a>
+
+            <!-- 接口日志 -->
+            <a href="javascript:void(0)" class="sidebar-item" data-view="interface-log">
+                <i class="bi bi-link-45deg"></i>
+                <span class="nav-text">接口日志</span>
+            </a>
+
+            <!-- 操作日志 -->
+            <a href="javascript:void(0)" class="sidebar-item" data-view="operation-log">
+                <i class="bi bi-journal-text"></i>
+                <span class="nav-text">操作日志</span>
+            </a>
+
+            <!-- 分隔线 -->
+            <div class="sidebar-divider"></div>
+
+            <!-- 更多功能（预留扩展） -->
+            <a href="javascript:void(0)" class="sidebar-item" data-view="more">
+                <i class="bi bi-plus-circle"></i>
+                <span class="nav-text">更多功能</span>
+                <span class="sidebar-badge">NEW</span>
+            </a>
+        </div>
+
+        <!-- 用户登录区域 -->
+        <div class="sidebar-user-section" style="width: 100%; box-sizing: border-box;">
+            <!-- 登录表单（未登录时显示） -->
+            <div id="loginSection" class="sidebar-login" style="width: 100%;">
+                <div class="login-title" style="display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 8px; white-space: nowrap;">
+                    <i class="bi bi-person-circle" style="flex-shrink: 0;"></i>
+                    <span style="white-space: nowrap; flex-shrink: 0;">用户登录</span>
+                </div>
+                <div class="login-form" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                    <input type="text" class="form-control form-control-sm" id="operatorUsername" placeholder="用户名" style="width: 100%; box-sizing: border-box;">
+                    <input type="password" class="form-control form-control-sm" id="operatorPassword" placeholder="密码" style="width: 100%; box-sizing: border-box;">
+                    <button class="btn btn-primary btn-sm w-100" id="btnLogin" style="width: 100%;">
+                        <i class="bi bi-box-arrow-in-right"></i> 登录
+                    </button>
+                </div>
+                <div id="loginMessage" class="login-message" style="display: none;"></div>
+            </div>
+            <!-- 用户信息（登录后显示） -->
+            <div id="userInfoSection" class="sidebar-user-info" style="display: none;">
+                <div class="user-avatar">
+                    <i class="bi bi-person-check-fill"></i>
+                </div>
+                <div class="user-details">
+                    <div class="user-name-row">
+                        <span id="userNameDisplay">-</span>
+                        <span id="permissionBadge" class="badge bg-secondary">-</span>
+                    </div>
+                    <div class="user-job" id="userJobDisplay">-</div>
+                    <div class="session-timer" id="sessionTimer">
+                        <i class="bi bi-clock"></i>
+                        <span id="sessionTimeDisplay">--:--</span>
+                    </div>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" id="btnLogout" title="登出">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 底部 -->
+        <div class="sidebar-footer">
+            <a href="javascript:void(0)" class="sidebar-item" data-view="settings">
+                <i class="bi bi-info-circle"></i>
+                <span class="nav-text">关于系统</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <div class="container-fluid px-4 py-3">
+            <!-- 工单数据视图 -->
+            <div class="view-container active" id="view-workorder">
+            <div class="row">
+            <div class="col-12">
+                <!-- 工单信息（合并查询与信息展示） -->
+                <div id="workorderInfo">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                            <span><i class="bi bi-info-circle"></i> 工单信息</span>
+                            <div class="d-flex align-items-center gap-3">
+                                <span id="headerWonoLabel" style="display:none;">
+                                    <strong id="headerWono">-</strong>
+                                    <span class="mx-2">|</span>
+                                    <span id="headerPartno">-</span>
+                                    <span class="mx-2">|</span>
+                                    <span id="headerLine">-</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- 7个卡片一行均分：6个info-box + 1个健康率 -->
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    <small>总数量</small>
+                                    <h3 id="totalCount">-</h3>
+                                </div>
+                                <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                    <small>已完工</small>
+                                    <h3 id="completedCount">-</h3>
+                                </div>
+                                <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
+                                    <small>在制</small>
+                                    <h3 id="incompleteCount">-</h3>
+                                </div>
+                                <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                    <small>完成率</small>
+                                    <h3 id="completionRate">-</h3>
+                                </div>
+                                <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                                    <small>未打包</small>
+                                    <h3 id="unpackedCount">-</h3>
+                                </div>
+                                <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);">
+                                    <small>未入单</small>
+                                    <h3 id="missingCount">-</h3>
+                                </div>
+                                <!-- 健康率：固定宽度320px -->
+                                <div class="health-section" id="healthSection" style="flex: 0 0 320px; width: 320px;">
+                                    <div class="d-flex align-items-center h-100">
+                                        <div class="health-rate-display">
+                                            <div class="health-rate-value" id="healthRateValue">-</div>
+                                            <div class="health-rate-label">健康率</div>
+                                        </div>
+                                        <div class="health-issues flex-grow-1" id="healthIssues">
+                                            <div class="health-issue-item text-muted">
+                                                <i class="bi bi-clock"></i> 等待检测
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 包装情况 & ERP情况 -->
+                <div class="row" id="packErpSection">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white py-2">
+                                <div class="row g-0 align-items-center">
+                                    <!-- 左侧标题：包装情况 -->
+                                    <div class="col-md-7 pe-3" style="border-right: 1px solid rgba(255,255,255,0.3);">
+                                        <span><i class="bi bi-box me-1"></i>包装情况</span>
+                                    </div>
+                                    <!-- 右侧标题：ERP情况 + 按钮 -->
+                                    <div class="col-md-5 ps-3 d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-database me-1"></i>ERP情况</span>
+                                        <div>
+                                            <button class="btn btn-light btn-sm" onclick="refreshPackErpData()" id="packErpRefreshBtn" style="display:none;">
+                                                <i class="bi bi-arrow-clockwise"></i> 刷新
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body py-3" id="packErpCardBody" style="min-height: 80px;">
+                                <div id="packErpSummaryCard">
+                                    <div class="row g-0">
+                                        <!-- 左侧：包装情况数据 -->
+                                        <div class="col-md-7 pe-3" style="border-right: 2px solid #dee2e6;">
+                                            <div class="d-flex justify-content-around text-center">
+                                                <div>
+                                                    <div class="fs-5 fw-bold text-primary" id="packTotal">-</div>
+                                                    <div class="small text-muted">ACC数量</div>
+                                                </div>
+                                                <div>
+                                                    <div class="fs-5 fw-bold text-info">
+                                                        <span id="packInfoSum">-</span>
+                                                        <span id="otherWoIndicator" class="other-wo-indicator" style="display:none;">
+                                                            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                                        </span>
+                                                    </div>
+                                                    <div class="small text-muted">包装数量</div>
+                                                </div>
+                                                <div>
+                                                    <div class="fs-5 fw-bold text-warning"><span id="packSealedCount">-</span>/<span id="packCount">-</span></div>
+                                                    <div class="small text-muted">已封/批次</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- 右侧：ERP情况数据 -->
+                                        <div class="col-md-5 ps-3">
+                                            <div class="d-flex justify-content-around text-center align-items-start">
+                                                <div>
+                                                    <div class="fs-5 fw-bold text-success" id="erpTotalSum">-</div>
+                                                    <div class="small text-muted">ERP数量</div>
+                                                </div>
+                                                <div>
+                                                    <div class="fs-5 fw-bold text-info" id="erpBatchCount">-</div>
+                                                    <div class="small text-muted">批次</div>
+                                                </div>
+                                                <div>
+                                                    <div class="fs-5 fw-bold" id="diffTotalSum">-</div>
+                                                    <div class="small text-muted">差异</div>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <div id="compareStatus" class="small text-muted">
+                                                        等待查询
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 隐藏的accTotalSum，保持JS兼容 -->
+                                    <span id="accTotalSum" style="display:none;">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 疑似产品双列布局 -->
+                <div class="row">
+                    <!-- 未加入工单产品 -->
+                    <div class="col-md-6" id="missingProductsSection">
+                        <div class="card">
+                            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #fd7e14;">
+                                <span><i class="bi bi-exclamation-triangle"></i> 疑似未加入工单产品</span>
+                                <button class="btn btn-light btn-sm" onclick="queryMissingProducts()" id="missingQueryBtn">
+                                    <i class="bi bi-search"></i> 检测
+                                </button>
+                            </div>
+                            <div class="card-body p-2">
+                                <div id="missingProductsResult" style="display:none;">
+                                    <!-- 顶部操作栏：统计+按钮 -->
+                                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                                        <!-- 左侧统计 -->
+                                        <div class="d-flex gap-2 small">
+                                            <span>工单内: <strong class="text-primary" id="missingWoProductCount">0</strong></span>
+                                            <span>首站PASS: <strong class="text-success" id="missingFirstPassCount">0</strong></span>
+                                            <span>未加入: <strong class="text-danger" id="missingNotInWoCount">0</strong></span>
+                                        </div>
+                                        <!-- 右侧按钮 -->
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="selectAllProducts()" title="全选">
+                                                <i class="bi bi-check-all"></i> 全选
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="deselectAllProducts()" title="取消">
+                                                <i class="bi bi-x-lg"></i> 取消
+                                            </button>
+                                            <button class="btn btn-success btn-sm py-0 px-2 btn-add-missing" onclick="addSelectedToWorkorder()" id="btnAddToWorkorder">
+                                                <i class="bi bi-plus-circle"></i> 加入 <span class="badge bg-light text-success" id="selectedCount">0</span>
+                                            </button>
+                                            <button class="btn btn-outline-success btn-sm py-0 px-2" onclick="exportMissingProducts()" title="导出">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- 查询信息 + 条数（合并为一行，与右侧框对齐） -->
+                                    <div class="d-flex justify-content-between align-items-center mb-1" style="flex-shrink: 0;">
+                                        <small class="text-muted" style="font-size:0.75rem;">
+                                            <span id="missingPartno">-</span> | 首站: <code id="missingFirstOp">-</code> | <span id="missingTimeRange">-</span>
+                                        </small>
+                                        <small class="text-muted" id="missingProductsPageInfo">共 0 条</small>
+                                    </div>
+                                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                                        <table class="table table-sm table-hover table-bordered mb-0" id="missingProductsTable">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"></th>
+                                                    <th>#</th>
+                                                    <th>产品序列号(SN)</th>
+                                                    <th>状态</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- 初始状态提示 -->
+                                <div id="missingProductsInitial">
+                                    <div class="empty-state-container">
+                                        <div class="empty-state-mascot"><i class="bi bi-hourglass-split"></i></div>
+                                        <div class="empty-state-text">点击"检测"查询疑似未加入工单产品</div>
+                                        <div class="empty-state-hint text-warning"><i class="bi bi-exclamation-triangle"></i> 此查询较耗时</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 未打包产品 -->
+                    <div class="col-md-6" id="unpackedSection">
+                        <div class="card">
+                            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #6f42c1;">
+                                <span><i class="bi bi-box-seam"></i> 疑似未打包产品</span>
+                            </div>
+                            <div class="card-body p-2">
+                                <div id="unpackedResult" style="display:none;">
+                                    <!-- 顶部操作栏：统计+按钮 -->
+                                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                                        <!-- 左侧统计 -->
+                                        <div class="d-flex gap-2 small">
+                                            <span>未打包: <strong class="text-purple" id="unpackedTotalCount">0</strong></span>
+                                            <span class="text-muted">|</span>
+                                            <span>批次: <span id="generatedBatchId" class="badge bg-warning text-dark" style="font-size:0.75em;">-</span></span>
+                                        </div>
+                                        <!-- 右侧按钮 -->
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="selectAllUnpacked()" title="全选">
+                                                <i class="bi bi-check-all"></i> 全选
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="deselectAllUnpacked()" title="取消">
+                                                <i class="bi bi-x-lg"></i> 取消
+                                            </button>
+                                            <button class="btn btn-sm text-white py-0 px-2 btn-execute-pack" style="background-color: #6f42c1;" onclick="executePackingAction()" id="btnExecutePacking">
+                                                <i class="bi bi-box-arrow-in-down"></i> 补打包 <span class="badge bg-light text-dark" id="unpackedSelectedCount">0</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- 产品列表（与左侧框对齐） -->
+                                    <div class="d-flex justify-content-between align-items-center mb-1" style="flex-shrink: 0;">
+                                        <small class="text-muted" style="font-size:0.75rem;">
+                                            自动查询 | 完工未打包
+                                        </small>
+                                        <small class="text-muted" id="unpackedPageInfo">共 0 条</small>
+                                    </div>
+                                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                                        <table class="table table-sm table-hover table-bordered mb-0" id="unpackedTable">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th><input type="checkbox" id="selectAllUnpackedCheckbox" onchange="toggleSelectAllUnpacked(this)"></th>
+                                                    <th>#</th>
+                                                    <th>产品序列号(SN)</th>
+                                                    <th>状态</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- 初始状态提示 -->
+                                <div id="unpackedInitial">
+                                    <div class="empty-state-container">
+                                        <div class="empty-state-mascot"><i class="bi bi-box-seam"></i></div>
+                                        <div class="empty-state-text">加载工单后自动查询未打包产品</div>
+                                        <div class="empty-state-hint">查找状态为完成但未打包的产品</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            </div>
+            </div>
+            <!-- 工单数据视图结束 -->
+
+            <!-- 接口日志视图 -->
+            <div class="view-container" id="view-interface-log">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header text-white py-2" style="background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);">
+                                <span><i class="bi bi-link-45deg"></i> EAI接口日志</span>
+                            </div>
+                            <!-- Tab导航 -->
+                            <ul class="nav nav-tabs" id="interfaceLogTabs" role="tablist" style="padding-left: 10px; padding-top: 8px; background: #f8f9fa;">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active interface-log-tab" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-log-pane" type="button" role="tab" aria-controls="report-log-pane" aria-selected="true">
+                                        <i class="bi bi-cloud-arrow-up"></i> 报工日志
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link interface-log-tab" id="issue-tab" data-bs-toggle="tab" data-bs-target="#issue-log-pane" type="button" role="tab" aria-controls="issue-log-pane" aria-selected="false">
+                                        <i class="bi bi-cloud-arrow-down"></i> 下达工单日志
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="card-body py-2">
+                                <div class="tab-content" id="interfaceLogTabContent">
+                                    <!-- 报工日志Tab -->
+                                    <div class="tab-pane fade show active" id="report-log-pane" role="tabpanel" aria-labelledby="report-tab">
+                                        <!-- 筛选器 -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <select class="form-select form-select-sm" id="eaiLineFilter" style="width: 140px;" onchange="filterEaiLogs()">
+                                                    <option value="">全部产线</option>
+                                                    <option value="dpepp1">电控一线(SMT/MID/EPP)</option>
+                                                    <option value="smt2">电控二线(SMT-2/MID-2)</option>
+                                                    <option value="dpeps1">总成产线(EPS/IPA)</option>
+                                                </select>
+                                                <select class="form-select form-select-sm" id="eaiLevelFilter" style="width: 100px;" onchange="filterEaiLogs()">
+                                                    <option value="">全部级别</option>
+                                                    <option value="ERROR">错误</option>
+                                                    <option value="WARN">警告</option>
+                                                    <option value="SUCCESS">成功</option>
+                                                </select>
+                                                <button class="btn btn-primary btn-sm" onclick="queryEaiLogs()" id="eaiQueryBtn">
+                                                    <i class="bi bi-search"></i> 查询
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm" onclick="queryEaiErrors()" title="仅查看错误">
+                                                    <i class="bi bi-exclamation-triangle"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success btn-sm" onclick="exportEaiLogs()" title="导出Excel">
+                                                    <i class="bi bi-download"></i>
+                                                </button>
+                                                <div class="form-check form-switch ms-2">
+                                                    <input class="form-check-input" type="checkbox" id="eaiAutoRefresh" onchange="toggleEaiAutoRefresh()">
+                                                    <label class="form-check-label small" for="eaiAutoRefresh">自动刷新</label>
+                                                </div>
+                                                <select class="form-select form-select-sm ms-1" id="eaiRefreshInterval" style="width: 70px;" onchange="updateEaiRefreshInterval()">
+                                                    <option value="5000">5秒</option>
+                                                    <option value="10000" selected>10秒</option>
+                                                    <option value="30000">30秒</option>
+                                                    <option value="60000">1分钟</option>
+                                                </select>
+                                                <small class="text-muted ms-1" id="eaiRefreshStatus"></small>
+                                            </div>
+                                            <small class="text-muted" id="eaiQueryInfo">点击"查询"获取日志</small>
+                                        </div>
+                                        <!-- 统计概览 -->
+                                        <div class="d-flex gap-3 small mb-2">
+                                            <span>总计: <strong id="eaiLogTotal">-</strong></span>
+                                            <span class="text-success">成功: <strong id="eaiLogSuccess">-</strong></span>
+                                            <span class="text-danger">失败: <strong id="eaiLogFailed">-</strong></span>
+                                            <span class="text-warning">警告: <strong id="eaiLogWarn">-</strong></span>
+                                        </div>
+                                        <!-- 日志表格 -->
+                                        <div class="eai-log-table-container">
+                                            <table class="table table-sm table-hover table-bordered mb-0" id="eaiLogTable">
+                                                <thead class="table-light sticky-top">
+                                                    <tr style="text-align:center">
+                                                        <th style="width:150px">时间</th>
+                                                        <th style="width:50px">级别</th>
+                                                        <th style="width:65px">产线</th>
+                                                        <th style="width:110px">工单号</th>
+                                                        <th style="width:150px">批次号</th>
+                                                        <th style="width:130px">型号</th>
+                                                        <th style="width:45px">数量</th>
+                                                        <th style="width:110px">汇报单号</th>
+                                                        <th style="width:55px">状态</th>
+                                                        <th>详情</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr><td colspan="10" class="text-center text-muted py-4"><i class="bi bi-cloud"></i> 点击"查询"获取报工日志</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <!-- 下达工单日志Tab -->
+                                    <div class="tab-pane fade" id="issue-log-pane" role="tabpanel" aria-labelledby="issue-tab">
+                                        <!-- 筛选器 -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <select class="form-select form-select-sm" id="issueLineFilter" style="width: 140px;" onchange="filterIssueLogs()">
+                                                    <option value="">全部产线</option>
+                                                    <option value="Line1">SMT Line1</option>
+                                                    <option value="Line2">SMT Line2</option>
+                                                    <option value="Line3">SMT Line3</option>
+                                                </select>
+                                                <select class="form-select form-select-sm" id="issueLevelFilter" style="width: 100px;" onchange="filterIssueLogs()">
+                                                    <option value="">全部状态</option>
+                                                    <option value="ERROR">失败</option>
+                                                    <option value="SUCCESS">成功</option>
+                                                </select>
+                                                <button class="btn btn-primary btn-sm" onclick="queryIssueLogs()" id="issueQueryBtn">
+                                                    <i class="bi bi-search"></i> 查询
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm" onclick="queryIssueErrors()" title="仅查看错误">
+                                                    <i class="bi bi-exclamation-triangle"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success btn-sm" onclick="exportIssueLogs()" title="导出Excel">
+                                                    <i class="bi bi-download"></i>
+                                                </button>
+                                                <div class="form-check form-switch ms-2">
+                                                    <input class="form-check-input" type="checkbox" id="issueAutoRefresh" onchange="toggleIssueAutoRefresh()">
+                                                    <label class="form-check-label small" for="issueAutoRefresh">自动刷新</label>
+                                                </div>
+                                                <select class="form-select form-select-sm ms-1" id="issueRefreshInterval" style="width: 70px;" onchange="updateIssueRefreshInterval()">
+                                                    <option value="5000">5秒</option>
+                                                    <option value="10000" selected>10秒</option>
+                                                    <option value="30000">30秒</option>
+                                                    <option value="60000">1分钟</option>
+                                                </select>
+                                                <small class="text-muted ms-1" id="issueRefreshStatus"></small>
+                                            </div>
+                                            <small class="text-muted" id="issueQueryInfo">点击"查询"获取日志</small>
+                                        </div>
+                                        <!-- 统计概览 -->
+                                        <div class="d-flex gap-3 small mb-2">
+                                            <span>总计: <strong id="issueLogTotal">-</strong></span>
+                                            <span class="text-success">成功: <strong id="issueLogSuccess">-</strong></span>
+                                            <span class="text-danger">失败: <strong id="issueLogFailed">-</strong></span>
+                                            <span class="text-warning">处理中: <strong id="issueLogPending">-</strong></span>
+                                        </div>
+                                        <!-- 日志表格 -->
+                                        <div class="eai-log-table-container">
+                                            <table class="table table-sm table-hover table-bordered mb-0" id="issueLogTable">
+                                                <thead class="table-light sticky-top">
+                                                    <tr style="text-align:center">
+                                                        <th style="width:150px">时间</th>
+                                                        <th style="width:50px">级别</th>
+                                                        <th style="width:80px">产线</th>
+                                                        <th style="width:120px">工单号</th>
+                                                        <th style="width:65px">类型</th>
+                                                        <th style="width:140px">型号</th>
+                                                        <th style="width:55px">数量</th>
+                                                        <th style="width:55px">状态</th>
+                                                        <th>详情</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-cloud"></i> 点击"查询"获取下达工单日志</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 接口日志视图结束 -->
+
+            <!-- 操作日志视图 -->
+            <div class="view-container" id="view-operation-log">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-journal-text"></i> 系统日志查看器</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span id="logAutoRefreshIndicator" class="auto-refresh-indicator" style="display: none;">
+                                        <span class="pulse"></span> 自动刷新中
+                                    </span>
+                                    <button class="btn btn-outline-light btn-sm" onclick="toggleLogAutoRefresh()">
+                                        <i class="bi bi-arrow-repeat"></i> <span id="autoRefreshBtnText">自动刷新</span>
+                                    </button>
+                                    <button class="btn btn-outline-light btn-sm" onclick="refreshLogViewer()">
+                                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- 筛选工具栏 -->
+                            <div class="log-toolbar">
+                                <div class="log-filter-group">
+                                    <label>日志类型:</label>
+                                    <select class="form-select" id="logFileSelect" onchange="loadLogContent()">
+                                        <option value="system.log">系统日志</option>
+                                        <option value="api.log">API调用日志</option>
+                                        <option value="database.log">数据库日志</option>
+                                        <option value="user.log">用户行为日志</option>
+                                    </select>
+                                </div>
+                                <div class="log-filter-group">
+                                    <label>级别:</label>
+                                    <select class="form-select" id="logLevelFilter" onchange="loadLogContent()" style="width: 100px;">
+                                        <option value="">全部</option>
+                                        <option value="DEBUG">DEBUG</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="ERROR">ERROR</option>
+                                    </select>
+                                </div>
+                                <div class="log-filter-group">
+                                    <label>行数:</label>
+                                    <select class="form-select" id="logLinesLimit" onchange="loadLogContent()" style="width: 90px;">
+                                        <option value="100">100</option>
+                                        <option value="200">200</option>
+                                        <option value="500" selected>500</option>
+                                        <option value="1000">1000</option>
+                                    </select>
+                                </div>
+                                <div class="log-filter-group flex-grow-1">
+                                    <label>搜索:</label>
+                                    <input type="text" class="form-control" id="logSearchInput" placeholder="输入关键词搜索..." style="min-width: 150px;">
+                                </div>
+                                <button class="btn btn-primary btn-sm" onclick="loadLogContent()">
+                                    <i class="bi bi-search"></i> 查询
+                                </button>
+                            </div>
+                            <!-- 日志内容 -->
+                            <div class="card-body p-0">
+                                <div class="log-content-wrapper" id="logContentWrapper">
+                                    <div class="log-empty">
+                                        <i class="bi bi-journal-text"></i>
+                                        <span>点击"刷新"加载日志</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 日志统计 -->
+                            <div class="log-stats">
+                                <div>
+                                    <span class="stat-item">文件: <span class="stat-value" id="logFileName">-</span></span>
+                                    <span class="stat-item">大小: <span class="stat-value" id="logFileSize">-</span></span>
+                                    <span class="stat-item">显示行数: <span class="stat-value" id="logLineCount">0</span></span>
+                                </div>
+                                <div>
+                                    <span class="stat-item">最后更新: <span class="stat-value" id="logLastUpdate">-</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 操作日志视图结束 -->
+
+            <!-- HULU工单视图 -->
+            <div class="view-container" id="view-hulu">
+                <!-- HULU工单信息卡片（与工单信息页面风格统一） -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                                <span><i class="bi bi-cpu"></i> HULU工单信息</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-warning btn-sync-hulu" onclick="syncToHulu()" id="syncHuluBtn">
+                                        <i class="bi bi-cloud-upload"></i> 同步成品
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-light" onclick="refreshHuluData()">
+                                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                                    </button>
+                                    <a href="http://172.17.10.160:25642" target="_blank" class="btn btn-sm btn-outline-light">
+                                        <i class="bi bi-box-arrow-up-right"></i> 打开HULU
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body" id="huluContent">
+                                <!-- 顶部统计区（与首页风格统一：info-box渐变色） -->
+                                <div class="row g-2 align-items-center">
+                                    <!-- 左侧：产量统计（一行4个等宽info-box） -->
+                                    <div class="col-lg-7">
+                                        <div class="d-flex gap-2">
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                                <small>成品</small>
+                                                <h3>
+                                                    <span id="huluFinishedQty">-</span>
+                                                    <span id="huluFinishedDiffIcon" class="other-wo-indicator" style="display: none; font-size: 0.6em;">
+                                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                                    </span>
+                                                </h3>
+                                            </div>
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                <small>计划</small>
+                                                <h3 id="huluPlannedQty">-</h3>
+                                            </div>
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
+                                                <small>在制</small>
+                                                <h3>
+                                                    <span id="huluWipQty">-</span>
+                                                    <span id="huluWipDiffIcon" class="other-wo-indicator" style="display: none; font-size: 0.6em;">
+                                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                                    </span>
+                                                </h3>
+                                            </div>
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                                                <small>报废</small>
+                                                <h3 id="huluScrappedQty">-</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 右侧：工单基本信息 -->
+                                    <div class="col-lg-5">
+                                        <div class="card border-0 summary-info-card">
+                                            <div class="card-body">
+                                                <div id="huluOrderInfo" class="summary-info-grid" style="grid-template-columns: 45px 1fr 35px 1fr;">
+                                                    <span class="label">工单号:</span>
+                                                    <strong class="value" id="huluWono">-</strong>
+                                                    <span class="label">类型:</span>
+                                                    <span class="value" id="huluType">-</span>
+                                                    <span class="label">计划:</span>
+                                                    <span class="value" id="huluPlanQty">-</span>
+                                                    <span class="label">状态:</span>
+                                                    <span class="value"><span class="badge bg-secondary" id="huluStatus">-</span></span>
+                                                    <span class="label">时间:</span>
+                                                    <span class="value" id="huluTime" style="grid-column: span 3;">-</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 错误提示（悬浮显示，不改变布局） -->
+                                <div id="huluError" class="alert alert-danger mb-3" style="display: none;">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <span id="huluErrorMsg">无法连接到HULU服务器</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HULU列表区域（独立card，固定高度填满视口） -->
+                <div class="row">
+                    <!-- 成品列表（左侧） -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header py-2 hulu-list-header text-white" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <i class="bi bi-check-circle"></i> 成品列表
+                                        <span class="badge bg-dark ms-2" id="huluFinishedCount">-</span>
+                                    </span>
+                                    <span class="small" style="opacity: 0.9;" id="huluFinishedStatus">等待数据</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0" id="huluFinishedPanel">
+                                <div id="huluFinishedLoading" class="text-center py-3" style="display: none;">
+                                    <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                                    <span class="ms-2 small text-muted">加载成品列表...</span>
+                                </div>
+                                <div class="hulu-list-table-container" id="huluFinishedTable">
+                                    <table class="table table-sm table-bordered mb-0">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th class="text-center">产品条码</th>
+                                                <th class="text-center">工位</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="huluFinishedBody">
+                                            <tr>
+                                                <td colspan="2" class="empty-state-cell">
+                                                    <div class="empty-state-container">
+                                                        <div class="empty-state-mascot"><i class="bi bi-box-seam"></i></div>
+                                                        <div class="empty-state-text">小管家等待中~</div>
+                                                        <div class="empty-state-hint">请先查询工单查看完工产品</div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 在制列表（右侧） -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header py-2 hulu-list-header text-white" style="background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <i class="bi bi-gear-wide-connected"></i> 在制列表
+                                        <span class="badge bg-dark ms-2" id="huluWipCount">-</span>
+                                    </span>
+                                    <span class="small" style="opacity: 0.9;" id="huluWipStatus">等待数据</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0" id="huluWipPanel">
+                                <div id="huluWipLoading" class="text-center py-3" style="display: none;">
+                                    <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                                    <span class="ms-2 small text-muted">加载在制列表...</span>
+                                </div>
+                                <div class="hulu-list-table-container" id="huluWipTable">
+                                    <table class="table table-sm table-bordered mb-0">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th class="text-center">产品条码</th>
+                                                <th class="text-center">工位</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="huluWipBody">
+                                            <tr>
+                                                <td colspan="2" class="empty-state-cell">
+                                                    <div class="empty-state-container">
+                                                        <div class="empty-state-mascot"><i class="bi bi-hourglass-split"></i></div>
+                                                        <div class="empty-state-text">小管家等待中~</div>
+                                                        <div class="empty-state-hint">请先查询工单查看在制产品</div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- HULU工单视图结束 -->
+
+            <!-- ERP详情视图 -->
+            <div class="view-container" id="view-erp-detail">
+                <!-- 第一个card：ERP统计信息 -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card" id="erpDetailInfo">
+                            <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-box-seam"></i> ERP详情</span>
+                                <button class="btn btn-outline-light btn-sm" onclick="refreshErpDetail()">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新
+                                </button>
+                            </div>
+                            <div class="card-body" id="erpDetailContent">
+                                <!-- 顶部统计区：汇总统计 + 工单概述在同一行 -->
+                                <div class="row g-2 align-items-center">
+                                    <!-- 左侧：汇总统计（一行5个等宽info-box） -->
+                                    <div class="col-lg-7">
+                                        <div class="d-flex gap-2">
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                                <small>ERP数量</small>
+                                                <h3 id="erpDetailTotal">-</h3>
+                                            </div>
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                <small>批次数</small>
+                                                <h3 id="erpDetailBatchCount">-</h3>
+                                            </div>
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);">
+                                                <small>ACC数量</small>
+                                                <h3 id="erpDetailAccTotal">-</h3>
+                                            </div>
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
+                                                <small>差异</small>
+                                                <h3 id="erpDetailDiff">-</h3>
+                                            </div>
+                                            <div class="info-box" style="flex: 1 1 0; background: linear-gradient(135deg, #198754 0%, #20c997 100%);">
+                                                <small>一致性</small>
+                                                <h3 id="erpDetailConsistency">-</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 右侧：工单概述 -->
+                                    <div class="col-lg-5">
+                                        <div class="card border-0 summary-info-card">
+                                            <div class="card-body">
+                                                <div id="erpOrderInfo" class="summary-info-grid" style="grid-template-columns: 35px 1fr 35px 1fr 35px 1fr; gap: 4px 8px;">
+                                                    <!-- 第一行：工单、计划、入库 -->
+                                                    <span class="label">工单:</span>
+                                                    <strong class="value" id="erpMoBillNo">...</strong>
+                                                    <span class="label">计划:</span>
+                                                    <span class="value" id="erpPlanQty">...</span>
+                                                    <span class="label">入库:</span>
+                                                    <span class="value" id="erpInStockQty">...</span>
+                                                    <!-- 第二行：状态、结案 -->
+                                                    <span class="label">状态:</span>
+                                                    <span class="value"><span class="badge bg-secondary" id="erpBizStatus">...</span></span>
+                                                    <span class="label">结案:</span>
+                                                    <span class="value" id="erpCloseDate">...</span>
+                                                    <span style="grid-column: span 2;"></span>
+                                                    <!-- 第三行：物料（独占整行） -->
+                                                    <span class="label">物料:</span>
+                                                    <span class="value" id="erpMaterialNo" title="" style="grid-column: span 5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 第二部分：批次明细列表（无标题栏，直接显示表格） -->
+                <div id="erpBatchListSection">
+                    <!-- 批次明细列表 - Flex容器：表头+数据区+合计行 -->
+                    <div class="erp-table-container d-flex flex-column" style="border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
+                        <!-- 表头区域（固定） -->
+                        <div class="erp-table-header">
+                            <table class="table table-sm table-bordered mb-0" style="table-layout: fixed; width:100%; font-size:0.875rem;">
+                                <colgroup>
+                                    <col style="width:32px;">
+                                    <col style="width:80px;">
+                                    <col style="width:50px;">
+                                    <col style="width:100px;">
+                                    <col style="width:100px;">
+                                    <col style="width:50px;">
+                                    <col style="width:50px;">
+                                    <col style="width:70px;">
+                                    <col style="width:50px;">
+                                    <col style="width:100px;">
+                                    <col style="width:55px;">
+                                    <col style="width:55px;">
+                                    <col style="width:45px;">
+                                    <col style="width:105px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th colspan="10" class="text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size:0.75rem;">ERP数据</th>
+                                        <th colspan="2" class="text-center" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; font-size:0.75rem;">ACC数据</th>
+                                        <th colspan="2" class="text-center" style="background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #333; font-size:0.75rem;">差异</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">序号</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">汇报单号</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">创建人</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">创建日期</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">审核日期</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">报工数量</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">入库数量</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">单据状态</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">审核人</th>
+                                        <th style="background:#e8e0f0; color:#5a4a7a; text-align:center; font-size:0.8rem;">批次号</th>
+                                        <th style="background:#d4edda; color:#155724; text-align:center; font-size:0.8rem;">包装数量</th>
+                                        <th style="background:#d4edda; color:#155724; text-align:center; font-size:0.8rem;">工单数量</th>
+                                        <th style="background:#fff3cd; color:#856404; text-align:center; font-size:0.8rem;">数量</th>
+                                        <th style="background:#fff3cd; color:#856404; text-align:center; font-size:0.8rem;">状态</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                        <!-- 数据区域（flex:1撑满中间，内部滚动） -->
+                        <div class="erp-table-body">
+                            <table class="table table-sm table-hover mb-0" id="erpDetailTable" style="table-layout: fixed; width:100%; font-size:0.875rem;">
+                                <colgroup>
+                                    <col style="width:32px;">
+                                    <col style="width:80px;">
+                                    <col style="width:50px;">
+                                    <col style="width:100px;">
+                                    <col style="width:100px;">
+                                    <col style="width:50px;">
+                                    <col style="width:50px;">
+                                    <col style="width:70px;">
+                                    <col style="width:50px;">
+                                    <col style="width:100px;">
+                                    <col style="width:55px;">
+                                    <col style="width:55px;">
+                                    <col style="width:45px;">
+                                    <col style="width:105px;">
+                                </colgroup>
+                                <tbody id="erpDetailBody">
+                                    <tr>
+                                        <td colspan="14" class="empty-state-cell">
+                                            <div class="empty-state-container">
+                                                <div class="empty-state-mascot"><i class="bi bi-folder2-open"></i></div>
+                                                <div class="empty-state-text">小管家准备就绪~</div>
+                                                <div class="empty-state-hint">请先查询工单，然后点击刷新加载ERP数据</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- 合计行区域（固定在底部） -->
+                        <div class="erp-table-footer">
+                            <table class="table table-sm table-bordered mb-0" style="table-layout: fixed; width:100%; font-size:0.875rem;">
+                                <colgroup>
+                                    <col style="width:32px;">
+                                    <col style="width:80px;">
+                                    <col style="width:50px;">
+                                    <col style="width:100px;">
+                                    <col style="width:100px;">
+                                    <col style="width:50px;">
+                                    <col style="width:50px;">
+                                    <col style="width:70px;">
+                                    <col style="width:50px;">
+                                    <col style="width:100px;">
+                                    <col style="width:55px;">
+                                    <col style="width:55px;">
+                                    <col style="width:45px;">
+                                    <col style="width:105px;">
+                                </colgroup>
+                                <tfoot>
+                                    <tr style="font-weight: 600;">
+                                        <td class="text-center" style="background:#f8f5ff; font-weight:600;">合计</td>
+                                        <td style="background:#f8f5ff;"></td>
+                                        <td style="background:#f8f5ff;"></td>
+                                        <td style="background:#f8f5ff;"></td>
+                                        <td style="background:#f8f5ff;"></td>
+                                        <td class="text-center" id="erpSumErpQty" style="background:#f8f5ff; font-size:0.875rem;">-</td>
+                                        <td class="text-center" id="erpSumStockInQty" style="background:#f8f5ff; font-size:0.875rem;">-</td>
+                                        <td style="background:#f8f5ff;"></td>
+                                        <td style="background:#f8f5ff;"></td>
+                                        <td style="background:#f8f5ff;"></td>
+                                        <td class="text-center" id="erpSumPackQty" style="background:#f0fff4; font-size:0.875rem;">-</td>
+                                        <td class="text-center" id="erpSumAccQty" style="background:#f0fff4; font-size:0.875rem;">-</td>
+                                        <td class="text-center" id="erpSumDiff" style="background:#fff; font-size:0.875rem;">-</td>
+                                        <td style="background:#fff;"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ERP详情视图结束 -->
+
+            <!-- 明细查询视图 -->
+            <div class="view-container" id="view-detail-query">
+                <div class="detail-query-container">
+                    <!-- 左侧：包装列表 -->
+                    <div class="detail-pack-list-section">
+                        <div class="card">
+                            <div class="card-header text-white py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-box-seam"></i> 包装列表</span>
+                                    <span class="badge bg-light text-dark" id="detailPackCount">-</span>
+                                </div>
+                                <div class="small mt-1" style="opacity: 0.9;">
+                                    工单: <strong id="detailWonoLabel">-</strong>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="detail-pack-list-scroll" id="detailPackListBody">
+                                    <div class="text-center py-3 text-muted">
+                                        <i class="bi bi-inbox"></i> 请先查询工单
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="detail-pack-list-footer">
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm flex-grow-1" onclick="exportAllPacks()">
+                                        <i class="bi bi-download"></i> 导出全部批次
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：Tab内容区 -->
+                    <div class="detail-content-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <ul class="nav nav-tabs card-header-tabs" id="detailQueryTabs">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" href="javascript:void(0)" data-tab="unit-trace">
+                                            <i class="bi bi-search me-1"></i>单品查询
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="javascript:void(0)" data-tab="pack-detail">
+                                            <i class="bi bi-box me-1"></i>包装明细
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="javascript:void(0)" data-tab="finished-products">
+                                            <i class="bi bi-check-circle me-1"></i>完工明细
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="javascript:void(0)" data-tab="wip-products">
+                                            <i class="bi bi-clock-history me-1"></i>在制明细
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                <div class="detail-tab-content">
+                                    <!-- 单品查询Tab -->
+                                    <div class="detail-tab-pane active" id="detail-tab-unit-trace">
+                                        <!-- 搜索框 -->
+                                        <div class="detail-unit-search">
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                                                <input type="text" class="form-control" id="detailUnitSnInput" placeholder="输入或扫描产品SN">
+                                                <button class="btn btn-primary" onclick="queryUnitTrace()">
+                                                    <i class="bi bi-search"></i> 查询
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- 产品信息卡片 -->
+                                        <div class="detail-unit-info-card" id="detailUnitInfo">
+                                            <div class="text-center py-3 text-muted">
+                                                <i class="bi bi-search"></i> 输入产品SN进行查询
+                                            </div>
+                                        </div>
+
+                                        <!-- 过站履历 -->
+                                        <div class="detail-unit-history">
+                                            <div class="detail-unit-history-header">
+                                                <h6 class="mb-0"><i class="bi bi-list-check me-1"></i>过站履历</h6>
+                                                <span class="badge bg-secondary" id="detailUnitStationCount">-</span>
+                                            </div>
+                                            <div class="detail-unit-history-table">
+                                                <table class="table table-sm table-hover table-bordered mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width:50px" class="text-center">序号</th>
+                                                            <th style="width:120px">工位</th>
+                                                            <th class="text-center">开始时间</th>
+                                                            <th class="text-center">结束时间</th>
+                                                            <th style="width:60px" class="text-center">结果</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="detailUnitHistoryBody">
+                                                        <tr>
+                                                            <td colspan="5" class="text-center py-3 text-muted">等待查询</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 包装明细Tab -->
+                                    <div class="detail-tab-pane" id="detail-tab-pack-detail">
+                                        <!-- 批次信息卡片 -->
+                                        <div class="detail-pack-info-card" id="detailPackInfo">
+                                            <div class="text-center py-3 text-muted">
+                                                <i class="bi bi-box"></i> 从左侧选择一个批次
+                                            </div>
+                                        </div>
+
+                                        <!-- 产品列表 -->
+                                        <div class="detail-pack-products">
+                                            <div class="detail-pack-products-header">
+                                                <h6 class="mb-0"><i class="bi bi-list-ul me-1"></i>产品列表</h6>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-secondary" id="detailPackProductCount">-</span>
+                                                    <button class="btn btn-outline-success btn-sm" onclick="exportPackDetail()">
+                                                        <i class="bi bi-download"></i> 导出
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="detail-pack-products-table">
+                                                <table class="table table-sm table-hover table-bordered mb-0" id="packProductsTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="col-seq">序号</th>
+                                                            <th class="col-sn">产品SN</th>
+                                                            <th class="col-time">打包时间</th>
+                                                            <th class="col-stn">工站</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="detailPackProductsBody">
+                                                        <tr>
+                                                            <td colspan="4" class="text-center py-3 text-muted">等待选择批次</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 完工明细Tab -->
+                                    <div class="detail-tab-pane" id="detail-tab-finished-products">
+                                        <!-- 完工信息卡片 -->
+                                        <div class="detail-finished-info-card" id="detailFinishedInfo">
+                                            <div class="text-center py-3 text-muted">
+                                                <i class="bi bi-check-circle"></i> 请先查询工单
+                                            </div>
+                                        </div>
+
+                                        <!-- 完工产品列表 -->
+                                        <div class="detail-finished-products">
+                                            <div class="detail-finished-products-header">
+                                                <h6 class="mb-0"><i class="bi bi-list-check me-1"></i>完工产品列表</h6>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-success" id="detailFinishedCount">-</span>
+                                                    <button class="btn btn-outline-success btn-sm" onclick="exportFinishedProducts()">
+                                                        <i class="bi bi-download"></i> 导出
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="detail-finished-products-table">
+                                                <table class="table table-sm table-hover table-bordered mb-0" id="finishedProductsTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="col-seq">序号</th>
+                                                            <th class="col-sn">产品SN</th>
+                                                            <th class="col-time">完工时间</th>
+                                                            <th class="col-packid">批次</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="detailFinishedProductsBody">
+                                                        <tr>
+                                                            <td colspan="4" class="text-center py-3 text-muted">请先查询工单</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 在制明细Tab -->
+                                    <div class="detail-tab-pane" id="detail-tab-wip-products">
+                                        <!-- 在制信息卡片 -->
+                                        <div class="detail-wip-info-card" id="detailWipInfo">
+                                            <div class="text-center py-3 text-muted">
+                                                <i class="bi bi-clock-history"></i> 请先查询工单
+                                            </div>
+                                        </div>
+
+                                        <!-- 在制产品列表 -->
+                                        <div class="detail-wip-products">
+                                            <div class="detail-wip-products-header">
+                                                <h6 class="mb-0"><i class="bi bi-list-ul me-1"></i>在制产品列表</h6>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-warning text-dark" id="detailWipCount">-</span>
+                                                    <button class="btn btn-outline-warning btn-sm" onclick="exportWipProducts()">
+                                                        <i class="bi bi-download"></i> 导出
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="detail-wip-products-table">
+                                                <table class="table table-sm table-hover table-bordered mb-0" id="wipProductsTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="col-seq">序号</th>
+                                                            <th class="col-sn">产品SN</th>
+                                                            <th class="col-station">当前工位</th>
+                                                            <th class="col-time">进站时间</th>
+                                                            <th class="col-time">出站时间</th>
+                                                            <th class="col-result">结果</th>
+                                                            <th class="col-duration">滞留时长</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="detailWipProductsBody">
+                                                        <tr>
+                                                            <td colspan="7" class="text-center py-3 text-muted">请先查询工单</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 明细查询视图结束 -->
+
+            <!-- 更多功能视图 -->
+            <div class="view-container" id="view-more">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-3">
+                            <div class="card-header bg-warning text-dark py-2">
+                                <span><i class="bi bi-rocket-takeoff"></i> 功能规划</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">以下功能正在规划或开发中，敬请期待</p>
+
+                                <!-- 功能卡片列表 -->
+                                <div class="row g-3">
+
+                                    <!-- 工单看板 -->
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-primary">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="bi bi-kanban text-primary" style="font-size: 1.5rem;"></i>
+                                                    <h6 class="mb-0 ms-2">工单看板</h6>
+                                                    <span class="badge bg-danger ms-auto">优先开发</span>
+                                                </div>
+                                                <p class="card-text small text-muted mb-2">
+                                                    可视化展示各产线工单状态，支持拖拽管理，实时追踪生产进度
+                                                </p>
+                                                <ul class="small text-muted ps-3 mb-0">
+                                                    <li>看板视图：待生产/生产中/已完成</li>
+                                                    <li>按产线/日期/优先级筛选</li>
+                                                    <li>工单详情快速预览</li>
+                                                    <li>进度百分比展示</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 生产进度追踪 -->
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-success">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="bi bi-graph-up text-success" style="font-size: 1.5rem;"></i>
+                                                    <h6 class="mb-0 ms-2">生产进度追踪</h6>
+                                                    <span class="badge bg-warning text-dark ms-auto">规划中</span>
+                                                </div>
+                                                <p class="card-text small text-muted mb-2">
+                                                    实时监控工单生产进度，自动计算完成率和预计完工时间
+                                                </p>
+                                                <ul class="small text-muted ps-3 mb-0">
+                                                    <li>实时进度条展示</li>
+                                                    <li>预计完工时间计算</li>
+                                                    <li>产能利用率分析</li>
+                                                    <li>延期工单预警</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 异常预警中心 -->
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-danger">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="bi bi-exclamation-triangle text-danger" style="font-size: 1.5rem;"></i>
+                                                    <h6 class="mb-0 ms-2">异常预警中心</h6>
+                                                    <span class="badge bg-warning text-dark ms-auto">规划中</span>
+                                                </div>
+                                                <p class="card-text small text-muted mb-2">
+                                                    自动检测生产异常，及时推送预警通知，减少损失
+                                                </p>
+                                                <ul class="small text-muted ps-3 mb-0">
+                                                    <li>报工失败自动告警</li>
+                                                    <li>物料版本不一致提醒</li>
+                                                    <li>工单超期预警</li>
+                                                    <li>企业微信/邮件通知</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 数据统计报表 -->
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-info">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="bi bi-bar-chart-line text-info" style="font-size: 1.5rem;"></i>
+                                                    <h6 class="mb-0 ms-2">数据统计报表</h6>
+                                                    <span class="badge bg-secondary ms-auto">待定</span>
+                                                </div>
+                                                <p class="card-text small text-muted mb-2">
+                                                    多维度生产数据统计，支持图表展示和报表导出
+                                                </p>
+                                                <ul class="small text-muted ps-3 mb-0">
+                                                    <li>日/周/月产量统计</li>
+                                                    <li>产线效率对比</li>
+                                                    <li>良品率分析</li>
+                                                    <li>Excel/PDF报表导出</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 物料追溯查询 -->
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-secondary">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="bi bi-search text-secondary" style="font-size: 1.5rem;"></i>
+                                                    <h6 class="mb-0 ms-2">物料追溯查询</h6>
+                                                    <span class="badge bg-secondary ms-auto">待定</span>
+                                                </div>
+                                                <p class="card-text small text-muted mb-2">
+                                                    根据批次号或产品序列号，追溯完整生产履历
+                                                </p>
+                                                <ul class="small text-muted ps-3 mb-0">
+                                                    <li>批次号正反向追溯</li>
+                                                    <li>生产履历时间线</li>
+                                                    <li>关联工单查询</li>
+                                                    <li>质量问题定位</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 移动端适配 -->
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-purple" style="border-color: #6f42c1 !important;">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="bi bi-phone" style="font-size: 1.5rem; color: #6f42c1;"></i>
+                                                    <h6 class="mb-0 ms-2">移动端适配</h6>
+                                                    <span class="badge bg-secondary ms-auto">待定</span>
+                                                </div>
+                                                <p class="card-text small text-muted mb-2">
+                                                    手机/平板端适配，随时随地查看生产状态
+                                                </p>
+                                                <ul class="small text-muted ps-3 mb-0">
+                                                    <li>响应式界面设计</li>
+                                                    <li>扫码快速查询</li>
+                                                    <li>移动端报工操作</li>
+                                                    <li>推送通知接收</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <!-- 功能卡片列表结束 -->
+
+                                <hr class="my-4">
+
+                                <!-- 意见反馈 -->
+                                <div class="text-center">
+                                    <p class="text-muted mb-2">
+                                        <i class="bi bi-lightbulb"></i> 如有其他功能需求或建议，请联系技术支持
+                                    </p>
+                                    <small class="text-muted">如有问题请联系管理员 | 最后更新：2026-01-23</small>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 更多功能视图结束 -->
+
+            <!-- 关于系统视图 -->
+            <div class="view-container" id="view-settings">
+                <div class="row justify-content-center">
+                    <div class="col-lg-5 col-md-7">
+                        <div class="card">
+                            <div class="card-header bg-dark text-white py-1">
+                                <small><i class="bi bi-info-circle"></i> 关于系统</small>
+                            </div>
+                            <div class="card-body py-3">
+                                <!-- Logo和系统名称 -->
+                                <div class="text-center mb-3">
+                                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="利氪科技" style="height: 50px;" class="mb-2">
+                                    <h5 class="mb-1">工单小管家</h5>
+                                    <small class="text-muted">Work Order Assistant</small>
+                                </div>
+
+                                <hr class="my-2">
+
+                                <div class="row small">
+                                    <!-- 系统信息 -->
+                                    <div class="col-md-6 mb-2">
+                                        <div class="mb-2"><i class="bi bi-box-seam text-primary"></i> <strong>System</strong></div>
+                                        <table class="table table-sm table-borderless mb-0" style="font-size:0.85rem;">
+                                            <tr><td class="text-muted" style="width:70px;">Version</td><td>V2.1</td></tr>
+                                            <tr><td class="text-muted">Updated</td><td>2026-01-23</td></tr>
+                                            <tr><td class="text-muted">Runtime</td><td>Python Flask</td></tr>
+                                        </table>
+                                    </div>
+                                    <!-- 开发信息 -->
+                                    <div class="col-md-6 mb-2">
+                                        <div class="mb-2"><i class="bi bi-code-slash text-success"></i> <strong>Developer</strong></div>
+                                        <table class="table table-sm table-borderless mb-0" style="font-size:0.85rem;">
+                                            <tr><td class="text-muted" style="width:70px;">Author</td><td>Tao Dong</td></tr>
+                                            <tr><td class="text-muted">Dept</td><td>Information Security</td></tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <hr class="my-2">
+
+                                <!-- 版权信息 -->
+                                <div class="text-center text-muted position-relative" style="font-size:0.75rem;">
+                                    <p class="mb-0">© 2026 工单小管家</p>
+                                    <p class="mb-0">Work Order Assistant · All Rights Reserved</p>
+                                    <!-- License状态图标（右下角，悬停显示详情） -->
+                                    <span id="licenseStatusIcon" class="license-status-icon" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="left" title="Loading..." style="position:absolute;right:0;bottom:0;">
+                                        <i class="bi bi-shield-check"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 系统设置视图结束 -->
+
+        </div>
+    </div>
+    <!-- 主内容区结束 -->
+
+    <!-- Loading - 工单小管家主题加载动画 -->
+    <div id="loading">
+        <div class="loading-container">
+            <div class="loading-icon-wrapper">
+                <i class="bi bi-clipboard-check loading-icon"></i>
+                <div class="loading-icon-ring"></div>
+            </div>
+            <div class="loading-dots">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            </div>
+            <div class="loading-text" id="loadingText">正在查询中...</div>
+            <div class="loading-subtext" id="loadingSubtext">请稍候，小管家正在努力工作</div>
+        </div>
+    </div>
+
+    <!-- 加入工单确认弹窗 -->
+    <div class="modal fade" id="addToWoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> 确认加入工单</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>即将把 <strong id="modalSelectedCount">0</strong> 个产品加入工单 <code id="modalWono">-</code></p>
+                    <!-- 数量验证信息显示区域 -->
+                    <div id="modalQuantityInfo" style="display: none;"></div>
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle"></i> 系统会自动判断每个产品的完成状态：
+                        <ul class="mb-0 mt-1">
+                            <li>已通过末站且unitstatus=2 → status=2（完成）</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" onclick="confirmAddToWorkorder()">
+                        <i class="bi bi-check-lg"></i> 确认加入
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 补打包确认弹窗 -->
+    <div class="modal fade" id="packingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: #6f42c1;">
+                    <h5 class="modal-title"><i class="bi bi-box-arrow-in-down"></i> 确认补打包</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>即将把 <strong id="packingModalCount">0</strong> 个产品打包到批次 <code id="packingModalBatch">-</code></p>
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle"></i> 操作说明：
+                        <ul class="mb-0 mt-1">
+                            <li>向pack_history表插入打包记录</li>
+                            <li>更新pack_info表的currquantity</li>
+                            <li>使用参考批次的物料信息</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn text-white" style="background-color: #6f42c1;" onclick="confirmPacking()">
+                        <i class="bi bi-check-lg"></i> 确认打包
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作结果弹窗 -->
+    <div class="modal fade" id="resultModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" id="resultModalHeader">
+                    <h5 class="modal-title" id="resultModalTitle">操作结果</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="resultModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 打包详情弹窗 -->
+    <div class="modal fade" id="packDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-box"></i> 打包详情</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0" id="packTable">
+                            <colgroup>
+                                <col style="width: 40%">
+                                <col style="width: 15%">
+                                <col style="width: 15%">
+                                <col style="width: 15%">
+                                <col style="width: 15%">
+                            </colgroup>
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>批次号</th>
+                                    <th class="text-end">实际</th>
+                                    <th class="text-end">info</th>
+                                    <th class="text-end">规格</th>
+                                    <th class="text-center">状态</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <!-- 汇总行固定在底部 -->
+                    <div class="bg-success text-white px-3 py-2 d-flex justify-content-between align-items-center fw-bold">
+                        <span><i class="bi bi-calculator"></i> 合计</span>
+                        <span>实际: <span id="packActualSum">0</span> | info: <span id="modalPackInfoSum">0</span> | 封包: <span id="modalPackSealedCount">-</span></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ERP对比详情弹窗（保留用于兼容） -->
+    <div class="modal fade" id="compareDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-database"></i> ACC vs ERP 对比详情</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0" id="compareTable">
+                            <colgroup>
+                                <col style="width: 30%">
+                                <col style="width: 20%">
+                                <col style="width: 15%">
+                                <col style="width: 20%">
+                                <col style="width: 15%">
+                            </colgroup>
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>批次号</th>
+                                    <th class="text-end">ACC</th>
+                                    <th class="text-end">ERP</th>
+                                    <th>ERP单据</th>
+                                    <th class="text-end">差异</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <!-- 汇总 -->
+                    <div class="bg-info text-white px-3 py-2 d-flex justify-content-between align-items-center fw-bold">
+                        <span><i class="bi bi-calculator"></i> 合计</span>
+                        <span>ACC: <span id="modalAccTotalSum">0</span> | ERP: <span id="modalErpTotalSum">0</span> | 差异: <span id="modalDiffTotalSum">0</span></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 打包+ERP对比合并详情弹窗（单表格） -->
+    <div class="modal fade" id="packErpCombinedModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>打包情况 & ERP对比详情</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <!-- 图例说明 -->
+                    <div class="px-4 py-2 bg-light border-bottom d-flex justify-content-center gap-4">
+                        <span><span class="badge" style="background:#fff3cd;color:#856404;">■</span> ERP手动收货</span>
+                        <span><span class="badge" style="background:#f8d7da;color:#842029;">■</span> 有差异</span>
+                        <span><span class="badge" style="background:#cfe2ff;color:#084298;">■</span> ACC独有</span>
+                    </div>
+                    <div style="max-height: 420px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0" id="packErpUnifiedTable" style="table-layout: fixed;">
+                            <colgroup>
+                                <col style="width: 30%;">
+                                <col style="width: 14%;">
+                                <col style="width: 14%;">
+                                <col style="width: 14%;">
+                                <col style="width: 12%;">
+                                <col style="width: 16%;">
+                            </colgroup>
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th class="ps-4">批次号</th>
+                                    <th class="text-center">本单数量</th>
+                                    <th class="text-center">批次总数</th>
+                                    <th class="text-center">ERP数量</th>
+                                    <th class="text-center">差异</th>
+                                    <th class="text-center">汇报单号</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <!-- 汇总 -->
+                    <div class="bg-primary text-white px-4 py-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold"><i class="bi bi-calculator me-2"></i>合计</span>
+                        <span class="fs-6">
+                            ACC: <strong id="unifiedAccTotal">0</strong>
+                            <span class="mx-2">|</span>
+                            包装: <strong id="unifiedInfoTotal">0</strong>
+                            <span class="mx-2">|</span>
+                            ERP: <strong id="unifiedErpTotal">0</strong>
+                            <span class="mx-2">|</span>
+                            差异: <strong id="unifiedDiffTotal">0</strong>
+                        </span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 分离的JS模块 -->
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/permission.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/health-score.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/workorder.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/eai-logs.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/logs.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/erp-detail.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/hulu.js') }}?v=2026012423"></script>
+    <script src="{{ url_for('static', filename='js/detail-query.js') }}?v=2026012423"></script>
+</body>
+</html>
+

@@ -1,0 +1,315 @@
+/**
+ * erp-detail.css - ERP详情视图样式
+ * 设计：程远 | 2026-01-18
+ * 更新：双card结构 - 统计信息card + 批次明细card
+ */
+
+/* ============================================
+   ERP详情视图 - 双Card Flex布局
+   ============================================ */
+
+/* 视图容器使用flex column布局 - 仅在active时生效 */
+#view-erp-detail.active {
+    height: calc(100vh - 70px);
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 第一个row（统计信息card）- 固定高度 */
+#view-erp-detail > .row:first-child {
+    flex-shrink: 0;
+}
+
+/* 第一个card（统计信息）自适应内容高度 */
+#view-erp-detail #erpDetailInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+/* card-body样式由workorder.css统一控制 */
+
+/* 第二部分（批次明细列表）- 填满剩余空间 */
+#view-erp-detail #erpBatchListSection {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 表格容器填满高度 */
+#view-erp-detail #erpBatchListSection .erp-table-container {
+    flex: 1;
+    min-height: 0;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 表格容器区域 */
+.erp-table-container {
+    background: #fff;
+}
+
+/* 表头区域 - 固定不滚动，使用scrollbar-gutter预留滚动条空间 */
+.erp-table-header {
+    flex-shrink: 0;
+    background: #f8f9fa;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+}
+
+/* 隐藏表头区域的滚动条但保留空间 */
+.erp-table-header::-webkit-scrollbar {
+    width: 17px;
+    background: transparent;
+}
+
+.erp-table-header::-webkit-scrollbar-thumb {
+    background: transparent;
+}
+
+.erp-table-header table {
+    border-bottom: none;
+}
+
+.erp-table-header th {
+    border-bottom: none !important;
+}
+
+/* 数据区域 - 填满中间空间并滚动，但不拉伸行高 */
+.erp-table-body {
+    flex: 1;
+    min-height: 0;
+    background: #fff;
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+}
+
+.erp-table-body table {
+    border-top: none;
+    height: auto;
+}
+
+.erp-table-body tbody tr:first-child td {
+    border-top: none;
+}
+
+/* 数据区域去掉单元格边框线 - 排除空状态单元格 */
+.erp-table-body td:not(.empty-state-cell) {
+    border: none !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+
+/* 固定表格行高 - 排除空状态行 */
+.erp-table-body tr:not(:only-child) {
+    height: 32px;
+}
+
+/* ============================================
+   ERP批次列表空状态居中显示
+   ============================================ */
+/* 空状态行 - 撑满整个数据区域 */
+.erp-table-body tr:only-child {
+    height: calc(100vh - 450px) !important;
+    min-height: 250px;
+}
+
+/* 取消空状态行的hover效果 */
+.erp-table-body .table-hover > tbody > tr:only-child:hover,
+.erp-table-body .table-hover > tbody > tr:only-child:hover > td,
+#erpDetailTable.table-hover > tbody > tr:only-child:hover,
+#erpDetailTable.table-hover > tbody > tr:only-child:hover > td {
+    --bs-table-hover-bg: transparent !important;
+    --bs-table-accent-bg: transparent !important;
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* 空状态单元格 - 支持所有空状态样式 */
+.erp-table-body .empty-state-cell,
+.erp-table-body td[colspan="14"] {
+    border: none !important;
+    border-bottom: none !important;
+    padding: 2rem 1rem !important;
+    height: 100% !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+}
+
+/* 空状态容器 - 偏上居中 */
+.erp-table-body .empty-state-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+    padding-top: 40px;
+}
+
+/* 空状态吉祥物图标 - 与HULU页面风格一致 */
+.erp-table-body .empty-state-mascot {
+    font-size: 42px;
+    margin-bottom: 12px;
+    color: #6c757d;
+    animation: erp-mascot-bounce 2s ease-in-out infinite;
+}
+
+.erp-table-body .empty-state-mascot i {
+    display: inline-block;
+}
+
+/* 空状态文字 - 与HULU页面风格一致 */
+.erp-table-body .empty-state-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: #4b5563;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+/* 空状态提示 - 与HULU页面风格一致 */
+.erp-table-body .empty-state-hint {
+    font-size: 12px;
+    color: #9ca3af;
+    text-align: center;
+}
+
+/* 吉祥物弹跳动画 */
+@keyframes erp-mascot-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.erp-table-body td:not(.empty-state-cell) {
+    height: 32px;
+    line-height: 1.2;
+    vertical-align: middle;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+}
+
+/* 合计行区域 - 固定在底部，使用scrollbar-gutter预留滚动条空间 */
+.erp-table-footer {
+    flex-shrink: 0;
+    background: #f8f9fa;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+    border-top: 2px solid #17a2b8;
+}
+
+/* 隐藏合计行区域的滚动条但保留空间 */
+.erp-table-footer::-webkit-scrollbar {
+    width: 17px;
+    background: transparent;
+}
+
+.erp-table-footer::-webkit-scrollbar-thumb {
+    background: transparent;
+}
+
+.erp-table-footer table {
+    border-top: none;
+}
+
+/* 确保表格列对齐 */
+.erp-table-header table,
+.erp-table-body table,
+.erp-table-footer table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* ============================================
+   ERP详情 - 自定义Tooltip样式
+   ============================================ */
+
+/* 警告类型tooltip - 浅黄色背景，与异常行风格协调 */
+.tooltip.erp-warning-tooltip .tooltip-inner {
+    background-color: #fff8e1;
+    color: #5d4037;
+    border: 1px solid #ffcc00;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    max-width: 280px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    text-align: left;
+}
+
+.tooltip.erp-warning-tooltip .tooltip-arrow::before {
+    border-top-color: #ffcc00;
+}
+
+.tooltip.erp-warning-tooltip[data-popper-placement^="bottom"] .tooltip-arrow::before {
+    border-bottom-color: #ffcc00;
+}
+
+.tooltip.erp-warning-tooltip[data-popper-placement^="left"] .tooltip-arrow::before {
+    border-left-color: #ffcc00;
+}
+
+.tooltip.erp-warning-tooltip[data-popper-placement^="right"] .tooltip-arrow::before {
+    border-right-color: #ffcc00;
+}
+
+/* 自定义tooltip样式 - 参照混装批次提示框样式 */
+.tooltip .tooltip-inner {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    max-width: 350px !important;
+    text-align: left !important;
+    padding: 14px 16px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+    border: 1px solid #e0e0e0 !important;
+    font-size: 13px !important;
+    line-height: 1.8 !important;
+}
+
+/* Tooltip内容样式类 */
+.tip-title-red { font-weight: 600; color: #d32f2f; font-size: 14px; margin-bottom: 6px; }
+.tip-title-orange { font-weight: 600; color: #ff9800; font-size: 14px; margin-bottom: 6px; }
+.tip-section { border-top: 1px solid #e0e0e0; padding-top: 8px; margin-top: 4px; }
+.tip-label { color: #666; margin-bottom: 4px; }
+.tip-item { color: #333; padding-left: 8px; }
+.tip-highlight { color: #1976d2; font-weight: 500; }
+.tip-result { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0; }
+.tip-result-label { color: #666; }
+.tip-result-red { color: #d32f2f; font-weight: 600; }
+.tip-result-orange { color: #ff9800; font-weight: 600; }
+
+/* 箭头颜色也改为白色 */
+.tooltip.bs-tooltip-top .tooltip-arrow::before {
+    border-top-color: #ffffff !important;
+}
+.tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+    border-bottom-color: #ffffff !important;
+}
+.tooltip.bs-tooltip-start .tooltip-arrow::before {
+    border-left-color: #ffffff !important;
+}
+.tooltip.bs-tooltip-end .tooltip-arrow::before {
+    border-right-color: #ffffff !important;
+}
+
+/* 兼容旧版Bootstrap写法 */
+.tooltip[data-popper-placement^="top"] .tooltip-arrow::before {
+    border-top-color: #ffffff !important;
+}
+.tooltip[data-popper-placement^="bottom"] .tooltip-arrow::before {
+    border-bottom-color: #ffffff !important;
+    border-top-color: transparent !important;
+}
+.tooltip[data-popper-placement^="left"] .tooltip-arrow::before {
+    border-left-color: #ffffff !important;
+    border-top-color: transparent !important;
+}
+.tooltip[data-popper-placement^="right"] .tooltip-arrow::before {
+    border-right-color: #ffffff !important;
+    border-top-color: transparent !important;
+}

@@ -1,0 +1,179 @@
+/**
+ * eai-logs.css - 接口日志视图样式
+ * 设计：林曦 | 2026-01-12
+ * 优化：固定高度布局，无需数据撑开
+ */
+
+/* ============================================
+   接口日志视图 - 简化固定高度方案
+   直接给表格容器设置计算后的固定高度
+   ============================================ */
+
+/* 表格容器 - 直接设置固定高度和滚动 */
+#view-interface-log .eai-log-table-container {
+    /* 计算：100vh - 导航栏56px - padding12px - card-header约50px - 统计栏约40px - 边距20px */
+    height: calc(100vh - 180px) !important;
+    max-height: calc(100vh - 180px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* EAI日志样式 */
+.eai-log-row { font-size: 0.85rem; }
+.eai-log-row.log-error { background-color: #f8d7da !important; }
+.eai-log-row.log-warn { background-color: #fff3cd !important; }
+.eai-log-row.log-success { background-color: #d1e7dd !important; }
+.eai-log-time { color: #6c757d; font-family: monospace; white-space: nowrap; }
+/* 除详情列外，所有列都不换行 */
+#eaiLogTable td:not(:last-child) { white-space: nowrap; }
+/* 详情列允许换行 */
+#eaiLogTable td:last-child { white-space: normal; word-break: break-word; }
+.eai-log-level { font-weight: bold; font-size: 0.75rem; padding: 2px 6px; border-radius: 3px; }
+.eai-log-level.level-error { background: #dc3545; color: white; }
+.eai-log-level.level-warn { background: #ffc107; color: #333; }
+.eai-log-level.level-success { background: #198754; color: white; }
+.eai-log-level.level-info { background: #6c757d; color: white; }
+.eai-log-wono { font-family: monospace; }
+.eai-log-raw {
+    font-size: 0.8rem;
+    color: #333;
+    word-break: break-word;
+    line-height: 1.4;
+    display: block;
+}
+.eai-log-detail { font-size: 0.8rem; }
+.eai-log-detail code { background: #e9ecef; padding: 1px 4px; border-radius: 3px; }
+.line-badge { font-size: 0.7rem; padding: 1px 5px; border-radius: 3px; background: #e9ecef; color: #495057; white-space: nowrap; }
+#eaiLogTable th {
+    font-size: 0.75rem;
+    padding: 8px 10px !important;
+    white-space: nowrap;
+}
+#eaiLogTable td {
+    vertical-align: top;
+    padding: 6px 10px;
+    border-left: none;
+    font-size: 0.8rem;
+}
+/* 表格使用固定布局，严格按照th指定的宽度 */
+#eaiLogTable { table-layout: fixed; width: 100%; }
+
+/* ============================================
+   EAI日志空状态提示文字增大
+   ============================================ */
+#eaiLogTable tbody tr:only-child td {
+    font-size: 1rem;
+    padding: 2rem 1rem !important;
+}
+#eaiLogTable tbody tr:only-child td i {
+    font-size: 1.2rem;
+}
+
+/* ============================================
+   接口日志Tab切换样式
+   ============================================ */
+#interfaceLogTabs {
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 0;
+}
+
+#interfaceLogTabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+    margin-bottom: -2px;
+    font-weight: 500;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+#interfaceLogTabs .nav-link:hover {
+    color: #0d6efd;
+    border-bottom-color: #dee2e6;
+}
+
+#interfaceLogTabs .nav-link.active {
+    color: #0d6efd;
+    background: transparent;
+    border-bottom: 2px solid #0d6efd;
+}
+
+#interfaceLogTabs .nav-link i {
+    margin-right: 0.25rem;
+}
+
+/* Tab内容区域 */
+#interfaceLogContent {
+    padding-top: 0;
+}
+
+#interfaceLogContent .tab-pane {
+    padding: 0;
+}
+
+/* ============================================
+   下达工单日志表格样式（复用报工日志样式）
+   ============================================ */
+#issueLogTable { table-layout: fixed; width: 100%; }
+#issueLogTable th {
+    font-size: 0.75rem;
+    padding: 8px 12px !important;
+    white-space: nowrap;
+}
+#issueLogTable td {
+    vertical-align: middle;
+    padding: 6px 12px;
+    border-left: none;
+    font-size: 0.8rem;
+}
+#issueLogTable td:not(:last-child) { white-space: nowrap; }
+/* 详情列允许换行（与报工日志保持一致） */
+#issueLogTable td:last-child { white-space: normal; word-break: break-word; }
+
+#issueLogTable tbody tr:only-child td {
+    font-size: 1rem;
+    padding: 2rem 1rem !important;
+}
+#issueLogTable tbody tr:only-child td i {
+    font-size: 1.2rem;
+}
+
+/* ============================================
+   日志表格行交互效果
+   ============================================ */
+
+/* 表格行悬浮效果 */
+#eaiLogTable tbody tr:hover:not(:only-child),
+#issueLogTable tbody tr:hover:not(:only-child) {
+    background-color: #e8f4f8 !important;
+    cursor: pointer;
+}
+
+/* 表格行点击选中效果 */
+#eaiLogTable tbody tr.row-selected,
+#issueLogTable tbody tr.row-selected {
+    background-color: #cfe2ff !important;
+    border-left: 3px solid #0d6efd;
+}
+
+/* 选中行保持原有状态背景但加深 */
+#eaiLogTable tbody tr.log-error.row-selected,
+#issueLogTable tbody tr.log-error.row-selected {
+    background-color: #f1aeb5 !important;
+}
+
+#eaiLogTable tbody tr.log-warn.row-selected,
+#issueLogTable tbody tr.log-warn.row-selected {
+    background-color: #ffe69c !important;
+}
+
+#eaiLogTable tbody tr.log-success.row-selected,
+#issueLogTable tbody tr.log-success.row-selected {
+    background-color: #a3cfbb !important;
+}
+
+/* 表格行过渡动画 */
+#eaiLogTable tbody tr,
+#issueLogTable tbody tr {
+    transition: background-color 0.15s ease;
+}

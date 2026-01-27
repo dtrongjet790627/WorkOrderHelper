@@ -1,0 +1,513 @@
+/**
+ * detail-query.css - 明细查询模块样式
+ * 设计：程远 | 2026-01-21
+ * 包含：左右分栏布局、包装列表、Tab切换、信息卡片
+ */
+
+/* ============================================
+   明细查询视图 - 整体布局
+   ============================================ */
+#view-detail-query.active {
+    height: calc(100vh - 68px);
+    overflow: hidden;
+}
+
+#view-detail-query .detail-query-container {
+    display: flex;
+    height: 100%;
+    gap: 16px;
+}
+
+/* ============================================
+   左侧包装列表区域
+   ============================================ */
+.detail-pack-list-section {
+    flex: 0 0 300px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.detail-pack-list-section > .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 0 !important;
+}
+
+.detail-pack-list-section > .card > .card-header {
+    flex-shrink: 0;
+    padding: 10px 12px !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.detail-pack-list-section > .card > .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+/* 包装列表滚动区域 */
+.detail-pack-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+/* 包装列表项样式 */
+.detail-pack-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.detail-pack-item:hover {
+    background: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.detail-pack-item.active {
+    background: linear-gradient(135deg, #e8f4f8 0%, #d4edda 100%);
+    border-color: #28a745;
+    border-left: 3px solid #28a745;
+}
+
+.detail-pack-item .pack-id {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #333;
+    max-width: 200px;
+}
+
+.detail-pack-item .pack-meta {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 4px;
+    display: flex;
+    gap: 10px;
+}
+
+/* 底部导出按钮区域 */
+.detail-pack-list-footer {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+/* ============================================
+   右侧Tab内容区域
+   ============================================ */
+.detail-content-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+}
+
+.detail-content-section > .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 0 !important;
+}
+
+.detail-content-section > .card > .card-header {
+    flex-shrink: 0;
+    padding: 0 !important;
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.detail-content-section > .card > .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 12px !important;
+    overflow: hidden;
+}
+
+/* Tab导航样式 */
+#detailQueryTabs {
+    padding: 0 16px;
+}
+
+#detailQueryTabs .nav-link {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6c757d;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    border-radius: 0;
+}
+
+#detailQueryTabs .nav-link:hover {
+    color: #333;
+    border-bottom-color: #dee2e6;
+}
+
+#detailQueryTabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    background: transparent;
+}
+
+/* Tab内容区域 */
+.detail-tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.detail-tab-pane {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.detail-tab-pane.active {
+    display: flex;
+}
+
+/* ============================================
+   单品查询Tab样式
+   ============================================ */
+.detail-unit-search {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+}
+
+.detail-unit-info-card {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #e8f4f8 100%);
+    border-left: 4px solid #17a2b8;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+}
+
+.detail-unit-history {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.detail-unit-history-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.detail-unit-history-table {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+/* ============================================
+   包装明细Tab样式
+   ============================================ */
+.detail-pack-info-card {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #e8f4f8 100%);
+    border-left: 4px solid #28a745;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+}
+
+.detail-pack-products {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.detail-pack-products-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.detail-pack-products-table {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+/* ============================================
+   信息项样式
+   ============================================ */
+.detail-info-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+}
+
+.detail-info-item .label {
+    color: #6c757d;
+    flex-shrink: 0;
+}
+
+.detail-info-item strong {
+    color: #212529;
+}
+
+/* ============================================
+   表格样式
+   ============================================ */
+.detail-unit-history-table table,
+.detail-pack-products-table table {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+}
+
+.detail-unit-history-table thead,
+.detail-pack-products-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.detail-unit-history-table th,
+.detail-pack-products-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.detail-pack-products-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* 包装明细产品列表 - 按比例分配宽度 */
+#packProductsTable { width: 100%; }
+#packProductsTable .col-seq { width: 6%; text-align: center; }
+#packProductsTable .col-sn { width: 44%; text-align: center; }
+#packProductsTable .col-time { width: 38%; text-align: center; }
+#packProductsTable .col-stn { width: 12%; text-align: center; }
+#packProductsTable td:nth-child(1) { text-align: center; }
+#packProductsTable td:nth-child(2) { text-align: center; }
+#packProductsTable td:nth-child(3) { text-align: center; }
+#packProductsTable td:nth-child(4) { text-align: center; }
+
+/* SN可点击链接样式 */
+.sn-link {
+    cursor: pointer;
+    color: #0d6efd;
+}
+
+.sn-link:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   完工明细Tab样式
+   ============================================ */
+.detail-finished-info-card {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #d4edda 100%);
+    border-left: 4px solid #28a745;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+}
+
+.detail-finished-products {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.detail-finished-products-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.detail-finished-products-table {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    max-height: calc(100vh - 280px);
+    min-height: 500px;
+}
+
+/* 完工明细表格列宽 */
+#finishedProductsTable { width: 100%; }
+#finishedProductsTable .col-seq { width: 6%; text-align: center; }
+#finishedProductsTable .col-sn { width: 38%; text-align: center; }
+#finishedProductsTable .col-time { width: 28%; text-align: center; }
+#finishedProductsTable .col-packid { width: 28%; text-align: center; }
+#finishedProductsTable td:nth-child(1) { text-align: center; }
+#finishedProductsTable td:nth-child(2) { text-align: center; }
+#finishedProductsTable td:nth-child(3) { text-align: center; }
+#finishedProductsTable td:nth-child(4) { text-align: center; }
+
+/* ============================================
+   在制明细Tab样式
+   ============================================ */
+.detail-wip-info-card {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #fff3cd 100%);
+    border-left: 4px solid #ffc107;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+}
+
+.detail-wip-products {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.detail-wip-products-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.detail-wip-products-table {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+/* 在制明细表格列宽（7列：序号、SN、工位、进站、出站、结果、滞留） */
+#wipProductsTable { width: 100%; table-layout: fixed; }
+#wipProductsTable .col-seq { width: 5%; text-align: center; }
+#wipProductsTable .col-sn { width: 26%; text-align: center; }
+#wipProductsTable .col-station { width: 12%; text-align: center; }
+#wipProductsTable .col-time { width: 18%; text-align: center; }
+#wipProductsTable .col-result { width: 8%; text-align: center; }
+#wipProductsTable .col-duration { width: 13%; text-align: center; }
+#wipProductsTable td { text-align: center; }
+#wipProductsTable td:nth-child(2) {
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 完工明细和在制明细表格通用样式 */
+.detail-finished-products-table table,
+.detail-wip-products-table table {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+}
+
+.detail-finished-products-table thead,
+.detail-wip-products-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.detail-finished-products-table th,
+.detail-wip-products-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.detail-finished-products-table td,
+.detail-wip-products-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* ============================================
+   响应式调整
+   ============================================ */
+@media (max-width: 992px) {
+    .detail-pack-list-section {
+        flex: 0 0 260px;
+        width: 260px;
+    }
+
+    .detail-pack-item .pack-id {
+        max-width: 160px;
+    }
+}
+
+/* ============================================
+   表格行交互效果 - 点击高亮
+   ============================================ */
+
+/* 表格行悬浮效果 */
+.detail-unit-history-table tbody tr:hover,
+.detail-pack-products-table tbody tr:hover,
+.detail-finished-products-table tbody tr:hover,
+.detail-wip-products-table tbody tr:hover {
+    background-color: #e8f4f8 !important;
+    cursor: pointer;
+}
+
+/* 表格行点击选中效果 */
+.detail-unit-history-table tbody tr.row-selected,
+.detail-pack-products-table tbody tr.row-selected,
+.detail-finished-products-table tbody tr.row-selected,
+.detail-wip-products-table tbody tr.row-selected {
+    background-color: #cfe2ff !important;
+    border-left: 3px solid #0d6efd;
+}
+
+/* 选中行内的文字加粗 */
+.detail-unit-history-table tbody tr.row-selected td,
+.detail-pack-products-table tbody tr.row-selected td,
+.detail-finished-products-table tbody tr.row-selected td,
+.detail-wip-products-table tbody tr.row-selected td {
+    font-weight: 500;
+}
+
+/* 表格行过渡动画 */
+.detail-unit-history-table tbody tr,
+.detail-pack-products-table tbody tr,
+.detail-finished-products-table tbody tr,
+.detail-wip-products-table tbody tr {
+    transition: background-color 0.15s ease, border-left 0.15s ease;
+}
