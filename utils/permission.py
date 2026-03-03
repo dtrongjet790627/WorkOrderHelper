@@ -4,7 +4,7 @@
 检查用户是否有权限执行数据修改操作
 """
 
-import cx_Oracle
+import oracledb as cx_Oracle
 import hashlib
 from config.database import DB_CONFIG
 

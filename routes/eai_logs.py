@@ -97,12 +97,13 @@ def get_eai_logs():
         processed_logs = []
         error_trigger_groups = set()
         success_trigger_groups = set()
+        temp_group_error_msg = {}  # 临时存储：group_id → 错误信息
 
         for log in all_logs:
             if log.get('log_type') == 'request':
                 requests.append(log)
             elif log.get('log_type') == 'response' and log.get('status') == 'failed':
-                pass
+                error_logs.append(log)  # 纳入时间匹配以提取错误信息
             elif log.get('log_type') == 'trigger' and log.get('all_records'):
                 triggers.append(log)
 
@@ -179,6 +180,12 @@ def get_eai_logs():
                 log['group_id'] = trigger_group_id
                 log['group_order'] = 999
                 error_trigger_groups.add(trigger_group_id)
+                # 捕获错误信息供触发行显示
+                if log.get('error_msg') and trigger_group_id not in temp_group_error_msg:
+                    temp_group_error_msg[trigger_group_id] = log.get('error_msg')
+                # 已匹配的失败响应不需要单独显示（会通过触发行展示错误）
+                if log.get('log_type') == 'response':
+                    continue
 
             processed_logs.append(log)
 
@@ -260,6 +267,15 @@ def get_eai_logs():
 
         # 更新trigger状态：只有失败时才更新，成功时保持"待报工"原样
         # 这样用户可以看到：trigger显示"待报工(X条)"，response显示"成功"+汇报单号
+
+        # 构建 group_id → 错误信息的映射
+        group_error_msg = dict(temp_group_error_msg)  # 从预建的映射开始
+        for log in all_logs:
+            if log.get('log_type') == 'error' and log.get('group_id'):
+                gid = log.get('group_id')
+                if gid not in group_error_msg and log.get('error_msg'):
+                    group_error_msg[gid] = log.get('error_msg')
+
         for log in all_logs:
             if log.get('log_type') == 'trigger':
                 group_id = log.get('group_id')
@@ -269,7 +285,13 @@ def get_eai_logs():
                         log['status'] = 'failed'
                         log['level'] = 'ERROR'
                         if log.get('is_group_first'):
-                            log['raw'] = '<span class="text-danger">报工失败</span>'
+                            err_msg = group_error_msg.get(group_id)
+                            if err_msg:
+                                short_msg = err_msg[:60] + '...' if len(err_msg) > 60 else err_msg
+                                log['raw'] = f'<span class="text-danger" title="{err_msg}">{short_msg}</span>'
+                                log['error_msg'] = err_msg
+                            else:
+                                log['raw'] = '<span class="text-danger">报工失败</span>'
                 # 成功时不更新trigger，保持原始的"待报工"状态
 
         # 排序

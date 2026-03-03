@@ -376,7 +376,8 @@ function renderEaiLogs() {
         // 详情（直接使用后端生成的HTML）
         let detailHtml = '';
         if (logItem.raw) {
-            detailHtml = `<div class="eai-log-raw">${logItem.raw}</div>`;
+            const rawTitle = logItem.error_msg ? ` title="${escapeHtml(logItem.error_msg)}"` : '';
+            detailHtml = `<div class="eai-log-raw"${rawTitle}>${logItem.raw}</div>`;
         } else if (logItem.schb_no) {
             detailHtml = `<code class="text-success">${logItem.schb_no}</code>`;
         } else if (logItem.error_msg) {

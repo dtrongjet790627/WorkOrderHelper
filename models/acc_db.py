@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ACC Oracle数据库连接"""
 
-import cx_Oracle
+import oracledb as cx_Oracle
 from config.database import DB_CONFIG, LINE_CONFIG, IPLANT_WEB_CONFIG
 
 

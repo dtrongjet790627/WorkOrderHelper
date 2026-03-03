@@ -35,13 +35,9 @@ def should_include_log_line(line):
     if 'db trigger get data' in line_lower:
         return True
 
-    # ERP响应 - 只保留成功的（失败的在run error中已有详细信息）
+    # ERP响应 - 保留所有响应（成功和失败）
     if 'kingdee response' in line_lower:
-        # 只保留成功的响应
-        if '"issuccess":true' in line_lower or '"issuccess": true' in line_lower:
-            return True
-        # 失败的响应不保留，因为run error已包含完整信息
-        return False
+        return True  # 保留所有响应（成功和失败）
 
     # 执行错误（包含详细错误信息）
     if 'run error' in line_lower:
@@ -197,7 +193,7 @@ def parse_eai_log_line(line):
                 result['error_msg'] = msg_match.group(1)
                 result['raw'] = f'<span class="text-danger">{result["error_msg"]}</span>'
             else:
-                result['raw'] = '<span class="text-danger">报工失败</span>'
+                result['raw'] = None
         return result
 
     # ========== 4. 处理执行错误（run error） ==========
@@ -226,7 +222,7 @@ def parse_eai_log_line(line):
         if line_match:
             result['line_name'] = line_match.group(1)
 
-        msg_match = re.search(r'\\"Message\\":\s*\\"([^"\\]+)\\"', line)
+        msg_match = re.search(r'\\?"Message\\?"\s*:\s*\\?"([^"\\]+)\\?"', line)
         if msg_match:
             result['error_msg'] = msg_match.group(1)
 

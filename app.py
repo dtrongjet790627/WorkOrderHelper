@@ -18,6 +18,16 @@ import os
 # 将项目根目录添加到Python路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# 启用 oracledb thick mode（支持 Oracle 11g）
+import oracledb
+try:
+    oracledb.init_oracle_client()  # 服务器环境：自动从系统PATH检测Oracle客户端
+except Exception:
+    try:
+        oracledb.init_oracle_client(lib_dir=r"D:\Software_Space\instantclient_23_0")  # 本地开发环境回退
+    except Exception as e:
+        print(f"[WARNING] Oracle thick mode init failed: {e}")
+
 from flask import Flask, render_template
 from config.settings import APP_CONFIG
 from config.database import LINE_CONFIG

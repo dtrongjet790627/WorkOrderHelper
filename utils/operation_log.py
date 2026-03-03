@@ -9,7 +9,7 @@
 日志表存储在iplant_web用户下(172.17.10.165)
 """
 
-import cx_Oracle
+import oracledb as cx_Oracle
 from config.database import DB_CONFIG
 
 
