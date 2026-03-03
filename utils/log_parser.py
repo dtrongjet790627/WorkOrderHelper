@@ -236,7 +236,7 @@ def parse_eai_log_line(line):
                 # 排除仅包含 JSON 嵌套结构头部（call lua error 等）的情况
                 # 有意义的错误信息通常包含中文或业务关键词
                 if candidate and len(candidate) > 5:
-                    result['error_msg'] = candidate[:200]
+                    result['error_msg'] = candidate
 
         if result['error_msg']:
             result['raw'] = f'<span class="text-danger">{result["error_msg"]}</span>'
@@ -278,7 +278,7 @@ def parse_eai_log_line(line):
         if batch_match:
             result['batch'] = batch_match.group(1)
         simplified = re.sub(r'^\[.*?\]\[.*?\]\[.*?\]\[.*?\]\s*>+\s*', '', line.strip())
-        result['raw'] = f'<span class="text-danger">{simplified[:150]}</span>'
+        result['raw'] = f'<span class="text-danger">{simplified}</span>'
 
     return result
 
@@ -435,7 +435,7 @@ def parse_issue_log_line(line):
             msg_match = re.search(r'"Message"\s*:\s*"([^"]+)"', line)
             if msg_match:
                 result['error_msg'] = msg_match.group(1)
-                result['raw'] = f'<span class="text-danger">{result["error_msg"][:80]}</span>'
+                result['raw'] = f'<span class="text-danger">{result["error_msg"]}</span>'
             else:
                 result['raw'] = '<span class="text-danger">处理失败</span>'
 
@@ -456,10 +456,10 @@ def parse_issue_log_line(line):
         msg_match = re.search(r'"Message"\s*:\s*"([^"]+)"', line)
         if msg_match:
             result['error_msg'] = msg_match.group(1)
-            result['raw'] = f'<span class="text-danger">{result["error_msg"][:100]}</span>'
+            result['raw'] = f'<span class="text-danger">{result["error_msg"]}</span>'
         else:
             simplified = re.sub(r'^\[.*?\]\[.*?\]\[.*?\]\[.*?\]\s*>+\s*', '', line.strip())
-            result['raw'] = f'<span class="text-danger">{simplified[:120]}</span>'
+            result['raw'] = f'<span class="text-danger">{simplified}</span>'
 
         return result
 
@@ -694,7 +694,7 @@ def parse_erp_to_mes_log_line(line):
         # 尝试从日志中提取错误信息
         error_match = re.search(r'error[:\s]+(.+)', line, re.IGNORECASE)
         if error_match:
-            result['error_msg'] = error_match.group(1)[:100]
+            result['error_msg'] = error_match.group(1)
 
         return result
 
@@ -707,7 +707,7 @@ def parse_erp_to_mes_log_line(line):
         # 提取>>>后面的错误信息
         error_msg = line.strip()[3:].strip()  # 去掉>>>前缀
         result['error_msg'] = error_msg
-        result['raw'] = f'<span class="text-danger">{error_msg[:80]}</span>'
+        result['raw'] = f'<span class="text-danger">{error_msg}</span>'
 
         return result
 
