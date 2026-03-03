@@ -335,6 +335,9 @@ def _query_erp_data(wono):
     erp_batch_count = int(erp_batch_count_row[0]) if erp_batch_count_row else 0
 
     # 查询ERP每条收货记录
+    # 入库数量优先取 T_PRD_MORPTENTRY_A.FSTOCKINSELQTY，
+    # 当该字段为 NULL（扩展表无记录或字段本身为空）时，fallback 到 e.FQUAQTY（汇报数量），
+    # 避免因 LEFT JOIN 未命中导致入库数量显示为 0。
     erp_cursor.execute("""
         SELECT
             e.FLOT_TEXT AS packid,
@@ -343,7 +346,7 @@ def _query_erp_data(wono):
             h.FCREATEDATE AS create_date,
             h.FDOCUMENTSTATUS AS doc_status,
             u.FNAME AS approver_name,
-            ea.FSTOCKINSELQTY AS stock_in_qty,
+            ISNULL(ea.FSTOCKINSELQTY, e.FQUAQTY) AS stock_in_qty,
             h.FAPPROVEDATE AS approve_date,
             cu.FNAME AS creator_name
         FROM T_PRD_MORPTENTRY e
