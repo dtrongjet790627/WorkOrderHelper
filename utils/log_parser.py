@@ -222,9 +222,21 @@ def parse_eai_log_line(line):
         if line_match:
             result['line_name'] = line_match.group(1)
 
+        # 方法1：提取 JSON 中的 Message 字段（可能有或没有反斜杠转义）
         msg_match = re.search(r'\\?"Message\\?"\s*:\s*\\?"([^"\\]+)\\?"', line)
         if msg_match:
             result['error_msg'] = msg_match.group(1)
+
+        # 方法2：如果方法1没提取到，尝试提取 "run error:" 后面的详细内容
+        # 格式示例：... run error: 生产汇报单【SCHB00079142】的明细第1行 ...
+        if not result['error_msg']:
+            run_error_match = re.search(r'run\s+error[：:]\s*(.+)', line, re.IGNORECASE)
+            if run_error_match:
+                candidate = run_error_match.group(1).strip()
+                # 排除仅包含 JSON 嵌套结构头部（call lua error 等）的情况
+                # 有意义的错误信息通常包含中文或业务关键词
+                if candidate and len(candidate) > 5:
+                    result['error_msg'] = candidate[:200]
 
         if result['error_msg']:
             result['raw'] = f'<span class="text-danger">{result["error_msg"]}</span>'

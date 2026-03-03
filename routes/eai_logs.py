@@ -126,7 +126,7 @@ def get_eai_logs():
                         'time': base_time if is_first else '',
                         'level': 'INFO' if is_first else '',
                         'log_type': 'trigger',
-                        'status': 'pending' if is_first else '',
+                        'status': 'pending',  # 统一用 'pending'，失败时由后续逻辑统一更新
                         'wono': record.get('WONO'),
                         'batch': record.get('PACKID'),
                         'partno': record.get('PARTNO'),
@@ -180,12 +180,15 @@ def get_eai_logs():
                 log['group_id'] = trigger_group_id
                 log['group_order'] = 999
                 error_trigger_groups.add(trigger_group_id)
-                # 捕获错误信息供触发行显示
-                if log.get('error_msg') and trigger_group_id not in temp_group_error_msg:
-                    temp_group_error_msg[trigger_group_id] = log.get('error_msg')
-                # 已匹配的失败响应不需要单独显示（会通过触发行展示错误）
-                if log.get('log_type') == 'response':
-                    continue
+                # 捕获错误信息供触发行显示：优先保留更详细（更长）的错误信息
+                new_err = log.get('error_msg')
+                if new_err:
+                    existing_err = temp_group_error_msg.get(trigger_group_id, '')
+                    if len(new_err) > len(existing_err):
+                        temp_group_error_msg[trigger_group_id] = new_err
+                # 已匹配的错误日志（response/error 类型）不需要单独显示，
+                # 错误信息已合并到触发行展示
+                continue
 
             processed_logs.append(log)
 
@@ -280,18 +283,19 @@ def get_eai_logs():
             if log.get('log_type') == 'trigger':
                 group_id = log.get('group_id')
                 if group_id in error_trigger_groups:
-                    # 只有失败时更新trigger状态
-                    if log.get('status') == 'pending':
-                        log['status'] = 'failed'
-                        log['level'] = 'ERROR'
-                        if log.get('is_group_first'):
-                            err_msg = group_error_msg.get(group_id)
-                            if err_msg:
-                                short_msg = err_msg[:60] + '...' if len(err_msg) > 60 else err_msg
-                                log['raw'] = f'<span class="text-danger" title="{err_msg}">{short_msg}</span>'
-                                log['error_msg'] = err_msg
-                            else:
-                                log['raw'] = '<span class="text-danger">报工失败</span>'
+                    # 整组失败：更新所有子记录的状态（包括非首行）
+                    log['status'] = 'failed'
+                    log['level'] = 'ERROR'
+                    if log.get('is_group_first'):
+                        # 首行：显示错误信息
+                        err_msg = group_error_msg.get(group_id)
+                        if err_msg:
+                            short_msg = err_msg[:60] + '...' if len(err_msg) > 60 else err_msg
+                            log['raw'] = f'<span class="text-danger" title="{err_msg}">{short_msg}</span>'
+                            log['error_msg'] = err_msg
+                        else:
+                            log['raw'] = '<span class="text-danger">报工失败</span>'
+                    # 非首行：status/level 已更新为 failed/ERROR，raw 保持为空字符串（前端 rowspan 不显示详情列）
                 # 成功时不更新trigger，保持原始的"待报工"状态
 
         # 排序
