@@ -7,6 +7,7 @@ from models.acc_db import get_connection
 from utils.line_identifier import identify_line
 from utils.permission import check_user_permission
 from utils.operation_log import log_packing_op
+from utils.logger import log_user
 
 packing_bp = Blueprint('packing', __name__)
 
@@ -565,6 +566,13 @@ def execute_packing():
                     operator=operator_id
                 )
 
+        # 记录用户行为日志
+        if inserted_count > 0:
+            log_user('MANUAL_PACKING', operator_id, f"手动补打包: {wono}",
+                     wono=wono, partno=partno, line=wo_line,
+                     packed_count=inserted_count, skipped_count=skipped_count,
+                     packs=created_packs)
+
         return jsonify({
             'success': True,
             'wono': wono,
@@ -692,6 +700,12 @@ def add_missing():
                 packid=target_packid,
                 operator=operator_id
             )
+
+        # 记录用户行为日志
+        if inserted_count > 0:
+            log_user('ADD_MISSING_PACK', operator_id, f"补充缺失打包: {wono}",
+                     wono=wono, partno=partno, line=line,
+                     packed_count=inserted_count, target_packid=target_packid)
 
         return jsonify({
             'success': True,

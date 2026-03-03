@@ -520,6 +520,12 @@ def add_missing_products():
         cursor.close()
         conn.close()
 
+        # 记录用户行为日志
+        if inserted_count > 0:
+            log_user('ADD_TO_WORKORDER', operator_id, f"添加产品到工单: {wono}",
+                     wono=wono, partno=partno, line=wo_line,
+                     inserted_count=inserted_count, skipped_count=skipped_count)
+
         return jsonify({
             'success': True,
             'wono': wono,

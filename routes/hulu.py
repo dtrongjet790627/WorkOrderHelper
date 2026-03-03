@@ -9,6 +9,7 @@ from models.acc_db import get_connection
 from utils.line_identifier import identify_line
 from utils.permission import check_user_permission
 from utils.operation_log import log_hulu_sync_batch
+from utils.logger import log_user
 
 # Redis库（可选）
 try:
@@ -393,6 +394,14 @@ def sync_to_hulu():
                 partno=hulu_partno,
                 linename=hulu_line
             )
+
+        # 记录用户行为日志
+        total_synced = updated_count + inserted_count
+        if total_synced > 0:
+            log_user('SYNC_TO_HULU', operator_id, f"同步工单到HULU: {wono}",
+                     wono=wono, partno=hulu_partno, line=hulu_line,
+                     updated_count=updated_count, inserted_count=inserted_count,
+                     total_synced=total_synced)
 
         return jsonify({
             'success': True,
