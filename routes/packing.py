@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from models.acc_db import get_connection
 from utils.line_identifier import identify_line
+from utils.deployment import check_line_access
 from utils.permission import check_user_permission
 from utils.operation_log import log_packing_op
 from utils.logger import log_user
@@ -23,6 +24,9 @@ def query_unpacked_products():
             return jsonify({'error': '请输入工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -102,6 +106,9 @@ def get_pack_batches():
             return jsonify({'error': '请输入工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -191,6 +198,9 @@ def generate_pack_id():
             return jsonify({'error': '请输入工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -420,6 +430,9 @@ def execute_packing():
             return jsonify({'error': '请选择要打包的产品'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -610,6 +623,9 @@ def add_missing():
             return jsonify({'error': '缺少工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 

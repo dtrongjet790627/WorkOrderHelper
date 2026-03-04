@@ -2,25 +2,29 @@
 """
 WorkOrderHelper PyInstaller Spec File
 ACC工单管理系统打包配置
+
+使用方法：
+    cd web_app目录
+    pyinstaller WorkOrderHelper.spec --clean
+
+输出目录：dist/WorkOrderHelper/
 """
 
 import os
 import sys
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
-# 项目根目录
-project_root = r'D:\TechTeam\Delivery\ACC运维\2025-12-28_ERP收货不足处理\web_app'
+# 项目根目录（spec文件所在目录）
+project_root = os.path.dirname(os.path.abspath(SPEC))
 
 block_cipher = None
 
 # 需要包含的数据文件和目录
+# 注意：routes/utils/models/config 是Python模块，由PyInstaller通过hiddenimports自动打包
+# 此处只保留非Python的数据文件（templates/static）
 datas = [
-    # 模板目录
     (os.path.join(project_root, 'templates'), 'templates'),
-    # 静态文件目录
     (os.path.join(project_root, 'static'), 'static'),
-    # 配置目录
-    (os.path.join(project_root, 'config'), 'config'),
 ]
 
 # 添加paramiko等包的元数据（解决PackageNotFoundError）
@@ -35,15 +39,21 @@ hiddenimports = [
     'flask',
     'flask.json',
     'jinja2',
+    'jinja2.ext',
     'werkzeug',
     'werkzeug.routing',
     'werkzeug.serving',
     'werkzeug.exceptions',
     'werkzeug.datastructures',
     'click',
+    'itsdangerous',
 
-    # 数据库驱动
-    'cx_Oracle',
+    # 数据库驱动 - oracledb（替代cx_Oracle）
+    'oracledb',
+    'oracledb.thick_impl',
+    'oracledb.thin_impl',
+    'oracledb.errors',
+    'oracledb.base_impl',
     'pymssql',
 
     # 数据处理
@@ -53,9 +63,20 @@ hiddenimports = [
 
     # SSH相关
     'paramiko',
+    'paramiko.transport',
+    'paramiko.auth_handler',
+    'paramiko.sftp_client',
     'cryptography',
+    'cryptography.hazmat.primitives.ciphers.algorithms',
+    'cryptography.hazmat.backends.openssl',
     'bcrypt',
     'nacl',
+    'nacl.bindings',
+
+    # Redis
+    'redis',
+    'redis.client',
+    'redis.connection',
 
     # 项目路由模块
     'routes',
@@ -76,8 +97,8 @@ hiddenimports = [
     'utils.ssh_helper',
     'utils.line_identifier',
     'utils.permission',
-    'utils.log_parser',
     'utils.operation_log',
+    'utils.deployment',
 
     # 项目模型模块
     'models',
@@ -91,7 +112,7 @@ hiddenimports = [
 ]
 
 a = Analysis(
-    [os.path.join(project_root, 'app_server.py')],
+    [os.path.join(project_root, 'app.py')],
     pathex=[project_root],
     binaries=[],
     datas=datas,
@@ -130,7 +151,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(project_root, 'static', 'images', 'favicon.png') if os.path.exists(os.path.join(project_root, 'static', 'images', 'favicon.ico')) else None,
 )
 
 coll = COLLECT(

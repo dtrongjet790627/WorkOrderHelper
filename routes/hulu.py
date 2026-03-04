@@ -7,6 +7,7 @@ import json as json_lib
 from config.database import HULU_REDIS_HOST, HULU_REDIS_PORT
 from models.acc_db import get_connection
 from utils.line_identifier import identify_line
+from utils.deployment import check_line_access
 from utils.permission import check_user_permission
 from utils.operation_log import log_hulu_sync_batch
 from utils.logger import log_user
@@ -265,6 +266,11 @@ def sync_to_hulu():
         return jsonify({'success': False, 'message': '请提供工单号'})
 
     try:
+        line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
+
         acc_products = get_acc_products_for_sync(wono)
         if not acc_products['success']:
             return jsonify({'success': False, 'message': acc_products.get('message', 'ACC查询失败')})
@@ -488,6 +494,11 @@ def get_hulu_diff_products():
         return jsonify({'success': False, 'message': '请提供工单号'})
 
     try:
+        line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
+
         acc_products = get_acc_products_for_sync(wono)
         if not acc_products['success']:
             return jsonify({'success': False, 'message': acc_products.get('message', 'ACC查询失败')})

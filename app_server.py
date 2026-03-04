@@ -21,7 +21,7 @@ else:
     _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-import cx_Oracle
+import oracledb as cx_Oracle
 import pymssql
 import pandas as pd
 from io import BytesIO

@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 from config.database import LINE_CONFIG
 from models.acc_db import get_connection, get_iplant_web_connection
 from utils.line_identifier import identify_line
+from utils.deployment import check_line_access
 from utils.permission import check_user_permission
 from utils.operation_log import log_workorder_op
 from utils.logger import log_user
@@ -22,6 +23,9 @@ def query_workorder():
             return jsonify({'error': '请输入工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         line_info = LINE_CONFIG[line_key]
 
         conn = get_connection(line_key)
@@ -234,6 +238,9 @@ def query_missing_products():
             return jsonify({'error': '请输入工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -396,6 +403,9 @@ def add_missing_products():
             return jsonify({'error': '请提供要插入的产品序列号列表'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -553,6 +563,9 @@ def check_product_status():
             return jsonify({'error': '请提供产品序列号列表'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -653,6 +666,9 @@ def get_workorder_quantity_info():
             return jsonify({'error': '请输入工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
 
         # 1. 查询当前已加入工单的数量（从产线数据库）
         conn = get_connection(line_key)
@@ -727,6 +743,9 @@ def validate_add_quantity():
             return jsonify({'error': '加入数量必须大于0'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
 
         # 1. 查询当前已加入工单的数量
         conn = get_connection(line_key)

@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from models.acc_db import get_connection
 from models.erp_db import get_erp_connection
 from utils.line_identifier import identify_line
+from utils.deployment import check_line_access
 
 erp_bp = Blueprint('erp', __name__)
 
@@ -63,6 +64,9 @@ def sync_data():
             return jsonify({'error': '参数不完整'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -588,6 +592,9 @@ def compare_acc_erp():
 
         # 提前获取line_key（在主线程中执行，确保线程安全）
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
 
         # 使用线程池并行查询ERP和ACC数据
         with ThreadPoolExecutor(max_workers=2) as executor:

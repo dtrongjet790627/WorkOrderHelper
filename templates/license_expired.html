@@ -117,8 +117,6 @@
 </head>
 <body>
     <div class="license-card">
-        <img src="/static/images/logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
-
         {% if license_info and license_info.expire_date != '-' and license_info.days_remaining < 0 %}
         <!-- 已过期状态：days_remaining为负数表示已过期 -->
         <div class="status-icon expired">

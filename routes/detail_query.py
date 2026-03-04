@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify, Response
 from config.database import LINE_CONFIG
 from models.acc_db import get_connection
 from utils.line_identifier import identify_line
+from utils.deployment import check_line_access
 import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -22,6 +23,9 @@ def get_pack_list():
             return jsonify({'error': '请提供工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         line_info = LINE_CONFIG[line_key]
 
         conn = get_connection(line_key)
@@ -431,6 +435,9 @@ def get_finished_products():
             return jsonify({'error': '请提供工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -614,6 +621,9 @@ def get_wip_products():
             return jsonify({'error': '请提供工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -800,6 +810,9 @@ def export_packs():
             return jsonify({'error': '请提供工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -1027,6 +1040,9 @@ def export_finished_products():
             return jsonify({'error': '请提供工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -1142,6 +1158,9 @@ def export_wip_products():
             return jsonify({'error': '请提供工单号'}), 400
 
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 
@@ -1231,6 +1250,9 @@ def check_indexes():
     try:
         wono = request.args.get('wono', 'MID-226011401').strip()
         line_key = identify_line(wono)
+        allowed, err = check_line_access(line_key)
+        if not allowed:
+            return err
         conn = get_connection(line_key)
         cursor = conn.cursor()
 

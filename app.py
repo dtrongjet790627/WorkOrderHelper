@@ -19,18 +19,47 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 启用 oracledb thick mode（支持 Oracle 11g）
+# 优先使用明确路径，避免无参调用在服务场景下不可靠
 import oracledb
-try:
-    oracledb.init_oracle_client()  # 服务器环境：自动从系统PATH检测Oracle客户端
-except Exception:
+_oracle_init_ok = False
+for _lib_dir in [
+    r"D:\CustomApps\instantclient_23_0",                      # 168服务器：64位instantclient（优先）
+    r"D:\CustomApps\instantclient_11_2\instantclient_11_2",  # 服务器标准路径（165/旧版兼容）
+    r"D:\Software_Space\instantclient_23_0",                  # 本地开发环境
+    None,                                                      # 最后：从系统PATH自动检测
+]:
     try:
-        oracledb.init_oracle_client(lib_dir=r"D:\Software_Space\instantclient_23_0")  # 本地开发环境回退
-    except Exception as e:
-        print(f"[WARNING] Oracle thick mode init failed: {e}")
+        if _lib_dir is not None:
+            oracledb.init_oracle_client(lib_dir=_lib_dir)
+        else:
+            oracledb.init_oracle_client()
+        _oracle_init_ok = True
+        print(f"[INFO] Oracle thick mode initialized: {_lib_dir or 'PATH auto-detect'}")
+        break
+    except Exception as _e:
+        continue
+if not _oracle_init_ok:
+    print("[WARNING] Oracle thick mode init failed, thin mode will be used (Oracle 11g may not work)")
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from config.settings import APP_CONFIG
 from config.database import LINE_CONFIG
+
+# 部署节点标识（环境变量控制，默认空字符串=本地开发=全产线）
+DEPLOYMENT = os.getenv('WO_DEPLOYMENT', '')
+
+# 各部署节点的产线白名单（key不在此dict中 = 全部产线）
+_DEPLOYMENT_LINES = {
+    '165': ['dpepp1', 'dpeps1', 'ceps1'],  # 全产线排除电控二线
+    '168': ['smt2'],                         # 仅电控二线
+}
+
+def _get_lines():
+    allowed = _DEPLOYMENT_LINES.get(DEPLOYMENT)
+    if allowed is None:
+        return LINE_CONFIG
+    return {k: v for k, v in LINE_CONFIG.items() if k in allowed}
+
 from routes import register_blueprints
 from utils.license import get_cached_license_status, get_license_info, clear_license_cache, LICENSE_FILE
 
@@ -46,7 +75,11 @@ LICENSE_EXEMPT_PATHS = [
 
 def create_app():
     """创建Flask应用"""
-    app = Flask(__name__)
+    # 支持PyInstaller frozen模式（exe运行时templates/static在exe同级目录）
+    _base = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+    app = Flask(__name__,
+                template_folder=os.path.join(_base, 'templates'),
+                static_folder=os.path.join(_base, 'static'))
     app.config['MAX_CONTENT_LENGTH'] = APP_CONFIG['MAX_CONTENT_LENGTH']
 
     # 注册蓝图
@@ -66,7 +99,7 @@ def create_app():
     # 首页路由
     @app.route('/')
     def index():
-        return render_template('index_hulu.html', lines=LINE_CONFIG)
+        return render_template('index_hulu.html', lines=_get_lines(), deployment=DEPLOYMENT)
 
     @app.route('/license')
     def license_page():
