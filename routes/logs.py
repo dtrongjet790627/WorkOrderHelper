@@ -36,6 +36,11 @@ def read_logs():
         if '..' in filename or '/' in filename or '\\' in filename:
             return jsonify({'error': '非法文件名'})
 
+        # 白名单校验：仅允许访问用户行为日志
+        ALLOWED_LOG_FILES = {'user.log'}
+        if filename not in ALLOWED_LOG_FILES:
+            return jsonify({'error': '该日志文件不对外开放'})
+
         content = read_log_file(filename, lines, search if search else None, level if level else None)
 
         # 获取文件大小信息

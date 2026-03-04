@@ -746,7 +746,7 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-journal-text"></i> 系统日志查看器</span>
+                                <span><i class="bi bi-person-lines-fill"></i> 用户行为日志</span>
                                 <div class="d-flex align-items-center gap-2">
                                     <span id="logAutoRefreshIndicator" class="auto-refresh-indicator" style="display: none;">
                                         <span class="pulse"></span> 自动刷新中
@@ -761,15 +761,6 @@
                             </div>
                             <!-- 筛选工具栏 -->
                             <div class="log-toolbar">
-                                <div class="log-filter-group">
-                                    <label>日志类型:</label>
-                                    <select class="form-select" id="logFileSelect" onchange="loadLogContent()">
-                                        <option value="system.log">系统日志</option>
-                                        <option value="api.log">API调用日志</option>
-                                        <option value="database.log">数据库日志</option>
-                                        <option value="user.log">用户行为日志</option>
-                                    </select>
-                                </div>
                                 <div class="log-filter-group">
                                     <label>级别:</label>
                                     <select class="form-select" id="logLevelFilter" onchange="loadLogContent()" style="width: 100px;">

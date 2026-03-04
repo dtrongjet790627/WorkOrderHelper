@@ -15,7 +15,7 @@ const LOG_AUTO_REFRESH_INTERVAL = 5000; // 5秒自动刷新
 //   加载日志内容
 // ============================================
 async function loadLogContent() {
-    const filename = document.getElementById('logFileSelect').value;
+    const filename = 'user.log';
     const level = document.getElementById('logLevelFilter').value;
     const lines = document.getElementById('logLinesLimit').value;
     const search = document.getElementById('logSearchInput').value.trim();
