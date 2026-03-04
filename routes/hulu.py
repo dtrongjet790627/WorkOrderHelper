@@ -401,7 +401,8 @@ def sync_to_hulu():
             log_user('SYNC_TO_HULU', operator_id, f"同步工单到HULU: {wono}",
                      wono=wono, partno=hulu_partno, line=hulu_line,
                      updated_count=updated_count, inserted_count=inserted_count,
-                     total_synced=total_synced)
+                     total_synced=total_synced,
+                     items=sync_records)
 
         return jsonify({
             'success': True,

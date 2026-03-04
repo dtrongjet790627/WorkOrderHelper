@@ -524,7 +524,8 @@ def add_missing_products():
         if inserted_count > 0:
             log_user('ADD_TO_WORKORDER', operator_id, f"添加产品到工单: {wono}",
                      wono=wono, partno=partno, line=wo_line,
-                     inserted_count=inserted_count, skipped_count=skipped_count)
+                     inserted_count=inserted_count, skipped_count=skipped_count,
+                     items=results)
 
         return jsonify({
             'success': True,
