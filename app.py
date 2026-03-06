@@ -16,7 +16,12 @@ import sys
 import os
 
 # 将项目根目录添加到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+if getattr(sys, 'frozen', False):
+    # PyInstaller打包模式：exe同级目录加入Python路径（外部config/优先）
+    _exe_dir = os.path.dirname(sys.executable)
+    sys.path.insert(0, _exe_dir)
+else:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 启用 oracledb thick mode（支持 Oracle 11g）
 # 优先使用明确路径，避免无参调用在服务场景下不可靠

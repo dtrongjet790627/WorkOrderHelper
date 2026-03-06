@@ -21,11 +21,8 @@ block_cipher = None
 
 # 需要包含的数据文件和目录
 # 注意：routes/utils/models/config 是Python模块，由PyInstaller通过hiddenimports自动打包
-# 此处只保留非Python的数据文件（templates/static）
-datas = [
-    (os.path.join(project_root, 'templates'), 'templates'),
-    (os.path.join(project_root, 'static'), 'static'),
-]
+# templates/static/config 放在exe同级目录（外部），不打包进_internal
+datas = []
 
 # 添加paramiko等包的元数据（解决PackageNotFoundError）
 datas += copy_metadata('paramiko')
@@ -99,6 +96,7 @@ hiddenimports = [
     'utils.permission',
     'utils.operation_log',
     'utils.deployment',
+    'utils.log_parser',
 
     # 项目模型模块
     'models',
