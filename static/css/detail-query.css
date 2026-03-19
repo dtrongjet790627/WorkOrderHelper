@@ -311,16 +311,68 @@
     vertical-align: middle;
 }
 
-/* 包装明细产品列表 - 按比例分配宽度 */
+/* 包装明细产品列表 - 按比例分配宽度（7列：复选框、序号、SN、工单号、打包时间、工站、状态） */
 #packProductsTable { width: 100%; }
-#packProductsTable .col-seq { width: 6%; text-align: center; }
-#packProductsTable .col-sn { width: 44%; text-align: center; }
-#packProductsTable .col-time { width: 38%; text-align: center; }
+#packProductsTable .col-check { width: 3%; text-align: center; }
+#packProductsTable .col-seq { width: 4%; text-align: center; }
+#packProductsTable .col-sn { width: 30%; text-align: center; }
+#packProductsTable .col-wono { width: 14%; text-align: center; }
+#packProductsTable .col-time { width: 22%; text-align: center; }
 #packProductsTable .col-stn { width: 12%; text-align: center; }
+#packProductsTable .col-status { width: 15%; text-align: center; }
 #packProductsTable td:nth-child(1) { text-align: center; }
 #packProductsTable td:nth-child(2) { text-align: center; }
 #packProductsTable td:nth-child(3) { text-align: center; }
 #packProductsTable td:nth-child(4) { text-align: center; }
+#packProductsTable td:nth-child(5) { text-align: center; }
+#packProductsTable td:nth-child(6) { text-align: center; }
+#packProductsTable td:nth-child(7) { text-align: center; }
+
+/* 复选框样式 */
+.product-checkbox {
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+}
+
+#selectAllProducts {
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+}
+
+/* 勾选后的行高亮 */
+.product-row-selected {
+    background-color: #e8f4fd !important;
+}
+
+/* 不同工单的行交替背景色 */
+.wono-group-alt {
+    background-color: #f8f9fa;
+}
+
+/* 已移除产品行样式 */
+.removed-product {
+    background-color: #fff3f3 !important;
+}
+
+.removed-product td {
+    color: #999 !important;
+    text-decoration: line-through;
+}
+
+.removed-product td:last-child {
+    text-decoration: none;
+}
+
+.removed-product .sn-link {
+    color: #999 !important;
+    text-decoration: line-through;
+}
+
+.removed-product .badge {
+    text-decoration: none;
+}
 
 /* SN可点击链接样式 */
 .sn-link {

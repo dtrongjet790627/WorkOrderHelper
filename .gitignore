@@ -29,6 +29,18 @@ config/database.ini
 .DS_Store
 Thumbs.db
 
+# Build / Distribution
+backup/
+build/
+dist/
+packages/
+
+# License files
+*.lic
+
+# Frozen requirements
+requirements_frozen.txt
+
 # Temp
 nul
 *.bak

@@ -117,6 +117,11 @@ function initTableRowHighlight() {
                     return;
                 }
 
+                // 如果点击的是复选框，不处理行高亮（让复选框自己处理）
+                if (e.target.classList.contains('product-checkbox') || e.target.id === 'selectAllProducts') {
+                    return;
+                }
+
                 // 切换选中状态
                 if (row.classList.contains('row-selected')) {
                     row.classList.remove('row-selected');
@@ -282,7 +287,7 @@ async function loadPackDetail(packid) {
 
     // 显示搜索图标加载动画
     infoContainer.innerHTML = generateSearchIconLoading('加载批次信息');
-    tableBody.innerHTML = `<tr><td colspan="4">${generateSearchRadarLoading('查询产品列表')}</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7">${generateSearchRadarLoading('查询产品列表')}</td></tr>`;
 
     try {
         const line = currentWorkorderLine || '';
@@ -291,7 +296,7 @@ async function loadPackDetail(packid) {
 
         if (data.error) {
             infoContainer.innerHTML = `<div class="text-danger"><i class="bi bi-exclamation-circle"></i> ${data.error}</div>`;
-            tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger"><i class="bi bi-exclamation-circle"></i> ${data.error}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger"><i class="bi bi-exclamation-circle"></i> ${data.error}</td></tr>`;
             return;
         }
 
@@ -335,31 +340,78 @@ async function loadPackDetail(packid) {
 
         // 渲染产品列表
         const products = data.products || [];
+        const removedCount = data.removed_count || 0;
+        const activeCount = data.total_count || 0;
+
+        // 重置全选复选框
+        const selectAllCheckbox = document.getElementById('selectAllProducts');
+        if (selectAllCheckbox) selectAllCheckbox.checked = false;
+
         if (products.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">暂无产品数据</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">暂无产品数据</td></tr>';
         } else {
+            // 计算工单分组，用于交替背景色
+            let currentWonoGroup = '';
+            let wonoGroupIdx = 0;
+
             let html = '';
             products.forEach(p => {
+                const isRemoved = p.is_removed;
+                const rowClass = isRemoved ? 'removed-product' : '';
+                const statusCell = isRemoved
+                    ? `<span class="badge bg-danger" title="移除时间: ${p.remove_time || '-'}\n原因: ${p.remove_reason || '-'}">已移除</span>`
+                    : '<span class="badge bg-success">正常</span>';
+
+                // 工单号显示
+                const wonoDisplay = p.wono || '-';
+
+                // 工单分组交替背景色
+                if (!isRemoved && wonoDisplay !== currentWonoGroup) {
+                    currentWonoGroup = wonoDisplay;
+                    wonoGroupIdx++;
+                }
+                const wonoGroupClass = (!isRemoved && wonoGroupIdx % 2 === 0) ? 'wono-group-alt' : '';
+
+                // 复选框：已移除的产品不显示复选框
+                const checkboxCell = isRemoved
+                    ? '<td class="text-center"></td>'
+                    : `<td class="text-center"><input type="checkbox" class="product-checkbox" data-unitsn="${p.unitsn}" data-wono="${wonoDisplay}" onchange="updateSelectedCount()"></td>`;
+
                 html += `
-                    <tr>
+                    <tr class="${rowClass} ${wonoGroupClass}">
+                        ${checkboxCell}
                         <td class="text-center">${p.seq}</td>
                         <td>
                             <code class="sn-link" onclick="jumpToUnitTrace('${p.unitsn}')">${p.unitsn}</code>
                         </td>
+                        <td class="text-center"><small>${wonoDisplay}</small></td>
                         <td class="text-center"><small>${p.packdate || '-'}</small></td>
-                        <td class="text-center"><small>${p.stn || '-'}</small></td>
+                        <td class="text-center"><small>${isRemoved ? (p.remove_time || '-') : (p.stn || '-')}</small></td>
+                        <td class="text-center">${statusCell}</td>
                     </tr>
                 `;
             });
             tableBody.innerHTML = html;
         }
 
+        // 重置已选数量显示
+        updateSelectedCount();
+
         // 更新产品数量显示
-        document.getElementById('detailPackProductCount').textContent = products.length;
+        document.getElementById('detailPackProductCount').textContent = activeCount;
+
+        // 更新已移除数量显示
+        const removedBadge = document.getElementById('detailPackRemovedCount');
+        if (removedCount > 0) {
+            removedBadge.textContent = `已移除: ${removedCount}`;
+            removedBadge.style.display = 'inline-block';
+        } else {
+            removedBadge.style.display = 'none';
+        }
 
     } catch (e) {
         infoContainer.innerHTML = `<div class="text-danger"><i class="bi bi-exclamation-circle"></i> 加载失败: ${e.message}</div>`;
-        tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger"><i class="bi bi-exclamation-circle"></i> 加载失败: ${e.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger"><i class="bi bi-exclamation-circle"></i> 加载失败: ${e.message}</td></tr>`;
     }
 }
 
@@ -902,8 +954,12 @@ function resetDetailQuery() {
 
     // 清空包装明细
     document.getElementById('detailPackInfo').innerHTML = '<div class="text-center py-3 text-muted"><i class="bi bi-box"></i> 从左侧选择一个批次</div>';
-    document.getElementById('detailPackProductsBody').innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted"><i class="bi bi-hourglass"></i> 等待选择批次</td></tr>';
+    document.getElementById('detailPackProductsBody').innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted"><i class="bi bi-hourglass"></i> 等待选择批次</td></tr>';
     document.getElementById('detailPackProductCount').textContent = '-';
+    document.getElementById('detailPackRemovedCount').style.display = 'none';
+    document.getElementById('detailPackSelectedCount').style.display = 'none';
+    const selectAllCb = document.getElementById('selectAllProducts');
+    if (selectAllCb) selectAllCb.checked = false;
 
     // 清空完工明细
     document.getElementById('detailFinishedInfo').innerHTML = '<div class="text-center py-3 text-muted"><i class="bi bi-check-circle"></i> 请先查询工单</div>';
@@ -917,6 +973,284 @@ function resetDetailQuery() {
 
     // 切换回单品查询Tab
     switchDetailTab('unit-trace');
+}
+
+// ============================================
+//   复选框 - 全选/取消全选
+// ============================================
+function toggleSelectAll(checked) {
+    const checkboxes = document.querySelectorAll('#detailPackProductsBody .product-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+        // 更新行高亮
+        const row = cb.closest('tr');
+        if (row) {
+            if (checked) {
+                row.classList.add('product-row-selected');
+            } else {
+                row.classList.remove('product-row-selected');
+            }
+        }
+    });
+    updateSelectedCount();
+}
+
+// ============================================
+//   复选框 - 获取已勾选的产品列表
+// ============================================
+function getSelectedProducts() {
+    const selected = [];
+    const checkboxes = document.querySelectorAll('#detailPackProductsBody .product-checkbox:checked');
+    checkboxes.forEach(cb => {
+        selected.push({
+            unitsn: cb.dataset.unitsn,
+            wono: cb.dataset.wono
+        });
+    });
+    return selected;
+}
+
+// ============================================
+//   复选框 - 更新已勾选数量显示
+// ============================================
+function updateSelectedCount() {
+    const selected = getSelectedProducts();
+    const badge = document.getElementById('detailPackSelectedCount');
+    if (!badge) return;
+    if (selected.length > 0) {
+        badge.textContent = `已选: ${selected.length}`;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+
+    // 同步更新行高亮样式
+    const checkboxes = document.querySelectorAll('#detailPackProductsBody .product-checkbox');
+    checkboxes.forEach(cb => {
+        const row = cb.closest('tr');
+        if (row) {
+            if (cb.checked) {
+                row.classList.add('product-row-selected');
+            } else {
+                row.classList.remove('product-row-selected');
+            }
+        }
+    });
+
+    // 更新全选复选框状态
+    const selectAllCheckbox = document.getElementById('selectAllProducts');
+    if (selectAllCheckbox) {
+        const totalCheckboxes = document.querySelectorAll('#detailPackProductsBody .product-checkbox');
+        if (totalCheckboxes.length > 0 && selected.length === totalCheckboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else if (selected.length > 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+    }
+}
+
+// ============================================
+//   移除产品 - 显示弹窗
+// ============================================
+async function showRemoveProductModal() {
+    if (!detailQueryCurrentPack) {
+        alert('请先选择一个批次');
+        return;
+    }
+
+    // 检查登录状态
+    if (typeof currentUser !== 'undefined' && !currentUser.isLoggedIn) {
+        alert('请先登录');
+        return;
+    }
+
+    const packid = detailQueryCurrentPack.packid;
+    const line = currentWorkorderLine || '';
+    const selectedProducts = getSelectedProducts();
+
+    // 填入批次号
+    document.getElementById('removePackId').value = packid;
+    document.getElementById('removeReason').value = '';
+    document.getElementById('removeWonoInfo').textContent = '';
+
+    // 根据是否有勾选产品，切换显示模式
+    const selectedInfoDiv = document.getElementById('removeSelectedInfo');
+    const wonoRequiredSpan = document.getElementById('removeWonoRequired');
+
+    if (selectedProducts.length > 0) {
+        // 有勾选产品 - 显示勾选信息，工单选择变为可选
+        selectedInfoDiv.style.display = 'block';
+        document.getElementById('removeSelectedCount').textContent = selectedProducts.length;
+        wonoRequiredSpan.style.display = 'none';  // 工单号变为非必填
+    } else {
+        // 无勾选产品 - 隐藏勾选信息，工单选择为必填
+        selectedInfoDiv.style.display = 'none';
+        wonoRequiredSpan.style.display = 'inline';
+    }
+
+    // 重置按钮状态
+    const confirmBtn = document.getElementById('confirmRemoveBtn');
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = '<i class="bi bi-trash3"></i> 确认移除';
+
+    // 加载工单列表
+    const wonoSelect = document.getElementById('removeWonoSelect');
+    wonoSelect.innerHTML = '<option value="">-- 加载中... --</option>';
+
+    // 显示弹窗
+    const modal = new bootstrap.Modal(document.getElementById('removeProductModal'));
+    modal.show();
+
+    // 请求批次内的工单列表
+    try {
+        const response = await fetch(`/api/detail/pack_wonos?packid=${encodeURIComponent(packid)}&line=${encodeURIComponent(line)}`);
+        const data = await response.json();
+
+        if (data.error) {
+            wonoSelect.innerHTML = `<option value="">-- 加载失败: ${data.error} --</option>`;
+            return;
+        }
+
+        const wonos = data.wonos || [];
+        if (wonos.length === 0) {
+            wonoSelect.innerHTML = '<option value="">-- 无关联工单 --</option>';
+            return;
+        }
+
+        let optionsHtml = selectedProducts.length > 0
+            ? '<option value="">-- 不按工单（使用勾选产品） --</option>'
+            : '<option value="">-- 请选择工单 --</option>';
+        wonos.forEach(w => {
+            optionsHtml += `<option value="${w.wono}">${w.wono} (${w.qty}个产品)</option>`;
+        });
+        wonoSelect.innerHTML = optionsHtml;
+
+        // 选择工单时更新提示信息
+        wonoSelect.onchange = function() {
+            const selected = wonos.find(w => w.wono === this.value);
+            if (selected) {
+                document.getElementById('removeWonoInfo').innerHTML =
+                    `<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> 将移除该工单在此批次中的 <strong>${selected.qty}</strong> 个产品（忽略勾选）</span>`;
+            } else {
+                if (selectedProducts.length > 0) {
+                    document.getElementById('removeWonoInfo').innerHTML =
+                        `<span class="text-info"><i class="bi bi-info-circle"></i> 将移除已勾选的 ${selectedProducts.length} 个产品</span>`;
+                } else {
+                    document.getElementById('removeWonoInfo').textContent = '';
+                }
+            }
+        };
+
+        // 初始显示勾选提示
+        if (selectedProducts.length > 0) {
+            document.getElementById('removeWonoInfo').innerHTML =
+                `<span class="text-info"><i class="bi bi-info-circle"></i> 将移除已勾选的 ${selectedProducts.length} 个产品</span>`;
+        }
+
+    } catch (e) {
+        wonoSelect.innerHTML = `<option value="">-- 网络错误 --</option>`;
+    }
+}
+
+// ============================================
+//   移除产品 - 确认执行
+// ============================================
+async function confirmRemoveProducts() {
+    const packid = document.getElementById('removePackId').value;
+    const wono = document.getElementById('removeWonoSelect').value;
+    const reason = document.getElementById('removeReason').value.trim();
+    const operatorId = typeof getOperatorId === 'function' ? getOperatorId() : '';
+    const selectedProducts = getSelectedProducts();
+
+    // 验证输入
+    if (!wono && selectedProducts.length === 0) {
+        alert('请先在列表中勾选要移除的产品，或选择一个工单批量移除');
+        return;
+    }
+    if (!reason) {
+        alert('请输入移除原因');
+        document.getElementById('removeReason').focus();
+        return;
+    }
+
+    // 构建请求体
+    let requestBody = {
+        packid: packid,
+        reason: reason,
+        operator_id: operatorId
+    };
+
+    let confirmMsg = '';
+
+    if (wono) {
+        // 按工单移除（优先工单模式，即使有勾选也按工单执行）
+        requestBody.wono = wono;
+        confirmMsg = `确定要从批次 ${packid} 中移除工单 ${wono} 的所有产品吗？`;
+    } else {
+        // 按勾选移除
+        requestBody.unitsns = selectedProducts.map(p => p.unitsn);
+        confirmMsg = `确定要从批次 ${packid} 中移除已勾选的 ${selectedProducts.length} 个产品吗？`;
+    }
+
+    // 二次确认
+    if (!confirm(confirmMsg + '\n\n此操作不可直接撤销，但产品会备份到历史记录中。')) {
+        return;
+    }
+
+    // 禁用按钮，显示加载状态
+    const confirmBtn = document.getElementById('confirmRemoveBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="bi bi-hourglass-split spin"></i> 执行中...';
+
+    try {
+        const response = await fetch('/api/detail/remove_products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            if (data.permission_error) {
+                // 权限错误
+                if (typeof handlePermissionError === 'function') {
+                    handlePermissionError(data);
+                } else {
+                    alert(`操作被拒绝: ${data.reason}`);
+                }
+            } else {
+                alert(`移除失败: ${data.error}`);
+            }
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="bi bi-trash3"></i> 确认移除';
+            return;
+        }
+
+        // 成功
+        alert(data.message || `成功移除 ${data.removed_count} 个产品`);
+
+        // 关闭弹窗
+        const modal = bootstrap.Modal.getInstance(document.getElementById('removeProductModal'));
+        if (modal) modal.hide();
+
+        // 刷新包装明细数据
+        loadPackDetail(packid);
+
+        // 刷新包装列表（数量可能变化）
+        detailQueryLoaded = false;
+        loadDetailPackList();
+
+    } catch (e) {
+        alert(`网络错误: ${e.message}`);
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="bi bi-trash3"></i> 确认移除';
+    }
 }
 
 // ============================================

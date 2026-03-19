@@ -6,6 +6,9 @@ from config.database import LINE_CONFIG
 from models.acc_db import get_connection
 from utils.line_identifier import identify_line
 from utils.deployment import check_line_access
+from utils.permission import check_user_permission
+from utils.operation_log import log_packing_op
+from datetime import datetime
 import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -190,7 +193,7 @@ def get_pack_detail():
         }
 
         # 查询批次内的产品列表（限制300条）
-        # 优化：移除LEFT JOIN，直接从pack_history获取packdate和stn，状态从前端可选查询
+        # 增加JOIN acc_wo_workorder_detail获取wono字段，用于混装批次区分产品所属工单
         query_params = {'packid': packid}
         line_filter = ""
         if line:
@@ -199,35 +202,368 @@ def get_pack_detail():
 
         cursor.execute(f"""
             SELECT * FROM (
-                SELECT
-                    ph.unitsn,
-                    ph.line,
-                    TO_CHAR(ph.packdate, 'YYYY-MM-DD HH24:MI:SS') AS packdate,
-                    ph.stn
-                FROM pack_history ph
-                WHERE ph.packid = :packid {line_filter}
-                ORDER BY ph.packdate, ph.unitsn
+                SELECT t.unitsn, t.line, t.packdate, t.stn, t.wono FROM (
+                    SELECT
+                        ph.unitsn,
+                        ph.line,
+                        TO_CHAR(ph.packdate, 'YYYY-MM-DD HH24:MI:SS') AS packdate,
+                        ph.stn,
+                        awd.wono,
+                        ROW_NUMBER() OVER (PARTITION BY ph.unitsn, ph.line ORDER BY awd.wono) AS rn
+                    FROM pack_history ph
+                    LEFT JOIN acc_wo_workorder_detail awd
+                        ON ph.unitsn = awd.unitsn AND ph.line = awd.line AND awd.status = 2
+                    WHERE ph.packid = :packid {line_filter}
+                ) t WHERE t.rn = 1
+                ORDER BY t.wono NULLS LAST, t.packdate, t.unitsn
             ) WHERE ROWNUM <= 300
         """, query_params)
 
         products = []
         for idx, row in enumerate(cursor.fetchall(), 1):
-            # row: unitsn, line, packdate, stn
+            # row: unitsn, line, packdate, stn, wono
             products.append({
                 'seq': idx,
                 'unitsn': row[0],
                 'line': row[1],
                 'packdate': row[2],
-                'stn': row[3]
+                'stn': row[3],
+                'wono': row[4] or '-',
+                'is_removed': False,
+                'remove_time': None,
+                'remove_reason': None
             })
+
+        # 查询已移除的产品（从备份表）
+        removed_products = []
+        try:
+            removed_params = {'packid': packid}
+            cursor.execute("""
+                SELECT
+                    rb.unitsn,
+                    rb.line,
+                    TO_CHAR(rb.packdate, 'YYYY-MM-DD HH24:MI:SS') AS packdate,
+                    NULL AS stn,
+                    rb.wono,
+                    TO_CHAR(rb.remove_time, 'YYYY-MM-DD HH24:MI:SS') AS remove_time,
+                    rb.remove_reason
+                FROM pack_history_removed_backup rb
+                WHERE rb.packid = :packid
+                ORDER BY rb.remove_time DESC, rb.unitsn
+            """, removed_params)
+
+            for row in cursor.fetchall():
+                removed_products.append({
+                    'seq': 0,  # 序号稍后统一编号
+                    'unitsn': row[0],
+                    'line': row[1],
+                    'packdate': row[2],
+                    'stn': row[3],
+                    'is_removed': True,
+                    'remove_time': row[5],
+                    'remove_reason': row[6],
+                    'wono': row[4]
+                })
+        except Exception:
+            # 如果备份表不存在，忽略错误
+            pass
+
+        # 合并：正常产品在前，已移除产品在后
+        all_products = products + removed_products
+        # 重新编号
+        for idx, p in enumerate(all_products, 1):
+            p['seq'] = idx
 
         cursor.close()
         conn.close()
 
         return jsonify({
             'pack_info': pack_info,
-            'products': products,
-            'total_count': len(products)
+            'products': all_products,
+            'total_count': len(products),
+            'removed_count': len(removed_products)
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@detail_query_bp.route('/api/detail/pack_wonos', methods=['GET'])
+def get_pack_wonos():
+    """获取批次内包含的工单号列表（用于移除产品时选择工单）"""
+    try:
+        packid = request.args.get('packid', '').strip()
+        line = request.args.get('line', '').strip()
+
+        if not packid:
+            return jsonify({'error': '请提供批次号'}), 400
+
+        # 根据line参数识别数据库连接
+        if line:
+            line_upper = line.upper()
+            if 'SMT-2' in line_upper or 'MID-2' in line_upper or 'SMT LINE2' in line_upper or 'MID LINE2' in line_upper:
+                line_key = 'smt2'
+            elif 'EPS' in line_upper or 'IPA' in line_upper:
+                line_key = 'dpeps1'
+            else:
+                line_key = 'dpepp1'
+        else:
+            line_key = 'dpepp1'
+
+        conn = get_connection(line_key)
+        cursor = conn.cursor()
+
+        # 查询批次内所有产品关联的工单号
+        cursor.execute("""
+            SELECT awd.wono, COUNT(*) AS qty
+            FROM pack_history ph
+            JOIN acc_wo_workorder_detail awd ON ph.unitsn = awd.unitsn AND ph.line = awd.line
+            WHERE ph.packid = :packid
+            GROUP BY awd.wono
+            ORDER BY qty DESC
+        """, {'packid': packid})
+
+        wonos = []
+        for row in cursor.fetchall():
+            wonos.append({
+                'wono': row[0],
+                'qty': row[1]
+            })
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'packid': packid,
+            'wonos': wonos
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@detail_query_bp.route('/api/detail/remove_products', methods=['POST'])
+def remove_products():
+    """从包装批次中移除产品
+
+    支持两种模式：
+    - 模式1（按工单）：传入packid + wono，移除该工单在此批次中的所有产品
+    - 模式2（按勾选）：传入packid + unitsns列表，移除指定的产品
+
+    逻辑：
+    1. 查找pack_history中要移除的产品
+    2. 将这些记录备份到 pack_history_removed_backup 表
+    3. 从pack_history中删除这些记录
+    4. 更新pack_info的currquantity
+    5. 将这些产品写入epr_report_work_history防止再次出现在报工视图中
+    6. 返回移除的数量和产品列表
+    """
+    try:
+        data = request.json
+        packid = data.get('packid', '').strip()
+        wono = data.get('wono', '').strip() if data.get('wono') else ''
+        unitsns = data.get('unitsns', [])  # 模式2：产品SN列表
+        reason = data.get('reason', '').strip()
+        operator_id = data.get('operator_id', '').strip()
+
+        # 权限校验
+        permission = check_user_permission(operator_id)
+        if not permission['has_permission']:
+            return jsonify({
+                'error': '无操作权限',
+                'permission_error': True,
+                'reason': permission['reason'],
+                'username': permission['username']
+            }), 403
+
+        if not packid:
+            return jsonify({'error': '请提供批次号'}), 400
+        if not unitsns and not wono:
+            return jsonify({'error': '请选择要移除的产品或工单'}), 400
+        if not reason:
+            return jsonify({'error': '请输入移除原因'}), 400
+
+        # 判断模式：优先使用unitsns（勾选模式）
+        use_unitsns_mode = bool(unitsns) and len(unitsns) > 0
+
+        if use_unitsns_mode:
+            # 模式2：按勾选的unitsns移除
+            # 需要从packid识别产线
+            packid_upper = packid.upper()
+            if 'SMT-2' in packid_upper or 'MID-2' in packid_upper or 'SMT LINE2' in packid_upper or 'MID LINE2' in packid_upper:
+                line_key = 'smt2'
+            elif 'EPS' in packid_upper or 'IPA' in packid_upper:
+                line_key = 'dpeps1'
+            else:
+                line_key = 'dpepp1'
+        else:
+            # 模式1：按工单移除，通过工单号识别产线
+            line_key = identify_line(wono)
+
+        conn = get_connection(line_key)
+        cursor = conn.cursor()
+
+        try:
+            products_to_remove = []
+
+            if use_unitsns_mode:
+                # 模式2：按unitsns查询要移除的产品，同时获取每个产品的wono
+                for sn in unitsns:
+                    cursor.execute("""
+                        SELECT ph.unitsn, ph.packid, ph.line,
+                               TO_CHAR(ph.packdate, 'YYYY-MM-DD HH24:MI:SS') AS packdate
+                        FROM pack_history ph
+                        WHERE ph.packid = :packid AND ph.unitsn = :unitsn
+                    """, {'packid': packid, 'unitsn': sn.strip()})
+                    row = cursor.fetchone()
+                    if row:
+                        # 查询该产品的wono（用于备份记录）
+                        cursor.execute("""
+                            SELECT wono FROM (
+                                SELECT awd.wono, ROW_NUMBER() OVER (ORDER BY awd.wono) AS rn
+                                FROM acc_wo_workorder_detail awd
+                                WHERE awd.unitsn = :unitsn AND awd.line = :line AND awd.status = 2
+                            ) WHERE rn = 1
+                        """, {'unitsn': row[0], 'line': row[2]})
+                        wono_row = cursor.fetchone()
+                        product_wono = wono_row[0] if wono_row else (wono or '-')
+
+                        products_to_remove.append({
+                            'unitsn': row[0],
+                            'packid': row[1],
+                            'line': row[2],
+                            'packdate': row[3],
+                            'wono': product_wono
+                        })
+            else:
+                # 模式1：按工单查询要移除的产品
+                cursor.execute("""
+                    SELECT ph.unitsn, ph.packid, ph.line, TO_CHAR(ph.packdate, 'YYYY-MM-DD HH24:MI:SS') AS packdate
+                    FROM pack_history ph
+                    JOIN acc_wo_workorder_detail awd ON ph.unitsn = awd.unitsn AND ph.line = awd.line
+                    WHERE ph.packid = :packid AND awd.wono = :wono
+                """, {'packid': packid, 'wono': wono})
+
+                for row in cursor.fetchall():
+                    products_to_remove.append({
+                        'unitsn': row[0],
+                        'packid': row[1],
+                        'line': row[2],
+                        'packdate': row[3],
+                        'wono': wono
+                    })
+
+            if not products_to_remove:
+                cursor.close()
+                conn.close()
+                if use_unitsns_mode:
+                    return jsonify({'error': f'批次 {packid} 中未找到指定的产品'}), 404
+                else:
+                    return jsonify({'error': f'批次 {packid} 中未找到属于工单 {wono} 的产品'}), 404
+
+            removed_count = len(products_to_remove)
+            removed_sns = [p['unitsn'] for p in products_to_remove]
+
+            # 2. 备份到 pack_history_removed_backup 表
+            for p in products_to_remove:
+                cursor.execute("""
+                    INSERT INTO pack_history_removed_backup
+                    (unitsn, packid, line, packdate, wono, remove_reason, remove_time, operator)
+                    VALUES
+                    (:unitsn, :packid, :line, TO_DATE(:packdate, 'YYYY-MM-DD HH24:MI:SS'), :wono, :reason, SYSDATE, :operator)
+                """, {
+                    'unitsn': p['unitsn'],
+                    'packid': p['packid'],
+                    'line': p['line'],
+                    'packdate': p['packdate'],
+                    'wono': p['wono'],
+                    'reason': reason[:200] if reason else None,
+                    'operator': operator_id[:50] if operator_id else None
+                })
+
+            # 3. 从pack_history中删除这些记录
+            for p in products_to_remove:
+                cursor.execute("""
+                    DELETE FROM pack_history
+                    WHERE unitsn = :unitsn AND packid = :packid AND line = :line
+                """, {
+                    'unitsn': p['unitsn'],
+                    'packid': p['packid'],
+                    'line': p['line']
+                })
+
+            # 4. 更新pack_info的currquantity
+            cursor.execute("""
+                SELECT COUNT(*) FROM pack_history WHERE packid = :packid
+            """, {'packid': packid})
+            new_qty = cursor.fetchone()[0]
+
+            cursor.execute("""
+                UPDATE pack_info
+                SET currquantity = :qty,
+                    lastupdate = SYSDATE,
+                    lastupdatetime = SYSDATE
+                WHERE packid = :packid
+            """, {'qty': new_qty, 'packid': packid})
+
+            # 5. 将产品写入epr_report_work_history（status=3表示手动移除，防止再次报工）
+            for p in products_to_remove:
+                try:
+                    cursor.execute("""
+                        INSERT INTO epr_report_work_history
+                        (wono, packid, unitsn, report_time, status)
+                        VALUES
+                        (:wono, :packid, :unitsn, SYSDATE, 3)
+                    """, {
+                        'wono': p['wono'],
+                        'packid': p['packid'],
+                        'unitsn': p['unitsn']
+                    })
+                except Exception:
+                    # 如果插入失败（如重复记录），忽略
+                    pass
+
+            # 提交事务
+            conn.commit()
+
+        except Exception as e:
+            # 回滚事务
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return jsonify({'error': f'移除操作失败: {str(e)}'}), 500
+
+        cursor.close()
+        conn.close()
+
+        # 记录操作日志
+        log_wono = wono if wono else '勾选移除'
+        for sn in removed_sns:
+            log_packing_op(
+                unitsn=sn,
+                linename=products_to_remove[0]['line'] if products_to_remove else '',
+                wono=log_wono,
+                partno='',
+                packid=packid,
+                operator=operator_id,
+                result='SUCCESS',
+                remark=f'从批次{packid}移除，原因: {reason}'
+            )
+
+        if use_unitsns_mode:
+            msg = f'成功从批次 {packid} 中移除 {removed_count} 个勾选的产品'
+        else:
+            msg = f'成功从批次 {packid} 中移除 {removed_count} 个属于工单 {wono} 的产品'
+
+        return jsonify({
+            'success': True,
+            'packid': packid,
+            'wono': wono,
+            'removed_count': removed_count,
+            'removed_products': removed_sns,
+            'new_quantity': new_qty,
+            'message': msg
         })
 
     except Exception as e:
